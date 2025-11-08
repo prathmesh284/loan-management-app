@@ -79,11 +79,11 @@
 
 
 import 'package:flutter/material.dart';
-import 'package:loan_management_app/DashboardPage.dart';
-import 'package:loan_management_app/CustomersPage.dart';
-import 'package:loan_management_app/DocumentStoragePage.dart';
-import 'package:loan_management_app/EMICalculatorPage.dart';
-import 'package:loan_management_app/LoanManagementPage.dart';
+import 'package:loan_management_app/Pages/DashboardPage.dart';
+import 'package:loan_management_app/Pages/CustomersPage.dart';
+import 'package:loan_management_app/Pages/DocumentStoragePage.dart';
+import 'package:loan_management_app/Pages/EMICalculatorPage.dart';
+import 'package:loan_management_app/Pages/LoanManagementPage.dart';
 
 class NavigationBarPage extends StatefulWidget {
   final int initialIndex;

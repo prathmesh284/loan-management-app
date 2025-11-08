@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:loan_management_app/UploadDocumentPage.dart';
+import 'package:loan_management_app/Pages/UploadDocumentPage.dart';
 
 class DocumentStoragePage extends StatelessWidget {
   const DocumentStoragePage({super.key});

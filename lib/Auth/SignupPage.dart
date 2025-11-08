@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:loan_management_app/DashboardPage.dart';
+import 'package:loan_management_app/Pages/DashboardPage.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});

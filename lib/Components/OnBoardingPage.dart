@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
-import 'package:loan_management_app/GoldLoanLandingPage.dart';
+import 'package:loan_management_app/Pages/GoldLoanLandingPage.dart';
 
 class OnBoardingPage extends StatelessWidget {
   final introKey = GlobalKey<IntroductionScreenState>();

@@ -428,7 +428,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:loan_management_app/NavigationBarPage.dart';
+import 'package:loan_management_app/Components/NavigationBarPage.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:loan_management_app/LoginPage.dart';
-import 'package:loan_management_app/SignupPage.dart';
+import 'package:loan_management_app/Auth/LoginPage.dart';
+import 'package:loan_management_app/Auth/SignupPage.dart';
 
 class GoldLoanLandingPage extends StatelessWidget {
   const GoldLoanLandingPage({super.key});

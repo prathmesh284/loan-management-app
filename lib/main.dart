@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:loan_management_app/GoldLoanLandingPage.dart';
+import 'package:loan_management_app/Pages/GoldLoanLandingPage.dart';
 // import 'package:loan_management_app/OnBoardingPage.dart';
 
 void main() {

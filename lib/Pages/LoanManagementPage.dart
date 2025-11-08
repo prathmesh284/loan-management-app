@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:loan_management_app/NewLoanPage.dart';
+import 'package:loan_management_app/Pages/NewLoanPage.dart';
 
 class LoanManagementPage extends StatefulWidget {
   const LoanManagementPage({super.key});

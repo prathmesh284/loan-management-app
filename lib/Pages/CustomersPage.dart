@@ -215,7 +215,7 @@
 // }
 
 import 'package:flutter/material.dart';
-import 'package:loan_management_app/CustomerDetailPage.dart';
+import 'package:loan_management_app/Pages/CustomerDetailPage.dart';
 
 class CustomersPage extends StatelessWidget {
   const CustomersPage({super.key});
