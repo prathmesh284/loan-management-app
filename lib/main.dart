@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:loan_management_app/Pages/DashboardPage.dart';
 import 'package:loan_management_app/Pages/GoldLoanLandingPage.dart';
 // import 'package:loan_management_app/OnBoardingPage.dart';
 
@@ -30,7 +31,8 @@ class GoldLoanApp extends StatelessWidget {
           ThemeData.dark().textTheme,
         ),
       ),
-      home: const GoldLoanLandingPage(),
+      // home: const GoldLoanLandingPage(),
+      home: DashboardPage(),
     );
   }
 }
