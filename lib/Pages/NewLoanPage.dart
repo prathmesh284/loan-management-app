@@ -1,121 +1,8 @@
-// import 'package:flutter/material.dart';
-
-// class NewLoanPage extends StatelessWidget {
-//   const NewLoanPage({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final darkMode = Theme.of(context).brightness == Brightness.dark;
-
-//     return Scaffold(
-//       // backgroundColor: darkMode ? const Color(0xFF221d10) : const Color(0xFFF8F8F6),
-//       backgroundColor: const Color(0xFFF8F8F6),
-//       appBar: AppBar(
-//         // backgroundColor:
-//             // darkMode ? const Color(0xFF221d10) : const Color(0xFFF8F8F6),       
-//         backgroundColor: const Color(0xFFF8F8F6),
-//         elevation: 0,
-//         centerTitle: true,
-//         title: Text(
-//           "New Loan",
-//           style: TextStyle(
-//             color: darkMode ? Colors.white : Colors.black87,
-//             fontWeight: FontWeight.bold,
-//             fontSize: 18,
-//           ),
-//         ),
-//         leading: IconButton(
-//           icon: Icon(Icons.arrow_back,
-//               color: darkMode ? Colors.white : Colors.black87),
-//           onPressed: () => Navigator.pop(context),
-//         ),
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.all(16),
-//         child: ListView(
-//           children: [
-//             _inputField("Customer Name", "Enter customer's full name", darkMode),
-//             _inputField("Loan Amount", "0.00", darkMode, prefix: "₹"),
-//             _inputField("Gold Weight (grams)", "Enter weight in grams", darkMode),
-//             Row(
-//               children: [
-//                 Expanded(
-//                     child: _inputField("Interest Rate", "12", darkMode, suffix: "%")),
-//                 const SizedBox(width: 16),
-//                 Expanded(
-//                     child: _inputField("Tenure (months)", "Enter months", darkMode)),
-//               ],
-//             ),
-//             const SizedBox(height: 24),
-//             ElevatedButton(
-//               onPressed: () {},
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: const Color(0xFFecb613),
-//                 foregroundColor: const Color(0xFF221d10),
-//                 padding: const EdgeInsets.symmetric(vertical: 16),
-//                 shape: RoundedRectangleBorder(
-//                     borderRadius: BorderRadius.circular(12)),
-//               ),
-//               child: const Text(
-//                 "Approve & Send OTP",
-//                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _inputField(String label, String hint, bool darkMode,
-//       {String? prefix, String? suffix}) {
-//     return Padding(
-//       padding: const EdgeInsets.only(bottom: 16),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text(label,
-//               style: TextStyle(
-//                   fontSize: 13,
-//                   fontWeight: FontWeight.w500,
-//                   color:
-//                       darkMode ? Colors.grey.shade400 : Colors.grey.shade600)),
-//           const SizedBox(height: 6),
-//           TextField(
-//             style: TextStyle(
-//                 color: darkMode ? Colors.white : Colors.black87, fontSize: 15),
-//             decoration: InputDecoration(
-//               prefixText: prefix,
-//               suffixText: suffix,
-//               hintText: hint,
-//               filled: true,
-//               fillColor:
-//                   darkMode ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
-//               hintStyle: TextStyle(
-//                   color:
-//                       darkMode ? Colors.grey.shade500 : Colors.grey.shade400),
-//               border: OutlineInputBorder(
-//                 borderRadius: BorderRadius.circular(12),
-//                 borderSide: BorderSide(
-//                     color: darkMode ? Colors.grey.shade700 : Colors.grey.shade300),
-//               ),
-//               focusedBorder: OutlineInputBorder(
-//                 borderRadius: BorderRadius.circular(12),
-//                 borderSide: const BorderSide(color: Color(0xFFecb613)),
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import "package:http/http.dart" as http;
 class NewLoanPage extends StatefulWidget {
   final String? goldType;
   final String? weight;
@@ -199,8 +86,11 @@ class _NewLoanPageState extends State<NewLoanPage> {
                 const SizedBox(height: 10),
                 buildTextField(idController, "Customer ID"),
                 const SizedBox(height: 10),
-                buildTextField(phoneController, "Phone Number",
-                    type: TextInputType.phone),
+                buildTextField(
+                  phoneController,
+                  "Phone Number",
+                  type: TextInputType.phone,
+                ),
                 const SizedBox(height: 10),
                 buildTextField(addressController, "Address"),
                 const SizedBox(height: 10),
@@ -216,8 +106,10 @@ class _NewLoanPageState extends State<NewLoanPage> {
                       borderSide: BorderSide.none,
                     ),
                     suffixIcon: const Icon(Icons.calendar_today_rounded),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                   onTap: () async {
                     DateTime? pickedDate = await showDatePicker(
@@ -227,8 +119,9 @@ class _NewLoanPageState extends State<NewLoanPage> {
                       lastDate: DateTime(2035),
                     );
                     if (pickedDate != null) {
-                      dateController.text =
-                          DateFormat('dd-MM-yyyy').format(pickedDate);
+                      dateController.text = DateFormat(
+                        'dd-MM-yyyy',
+                      ).format(pickedDate);
                     }
                   },
                 ),
@@ -246,10 +139,22 @@ class _NewLoanPageState extends State<NewLoanPage> {
                 buildReadonlyRow("LTV (%)", widget.ltv),
                 buildReadonlyRow("Interest Rate (%)", widget.interestRate),
                 buildReadonlyRow("Tenure (months)", widget.tenure),
-                buildReadonlyRow("Eligible Loan (₹)", widget.loanAmount?.toStringAsFixed(2)),
-                buildReadonlyRow("Monthly EMI (₹)", widget.emi?.toStringAsFixed(2)),
-                buildReadonlyRow("Total Interest (₹)", widget.totalInterest?.toStringAsFixed(2)),
-                buildReadonlyRow("Total Payable (₹)", widget.totalAmount?.toStringAsFixed(2)),
+                buildReadonlyRow(
+                  "Eligible Loan (₹)",
+                  widget.loanAmount?.toStringAsFixed(2),
+                ),
+                buildReadonlyRow(
+                  "Monthly EMI (₹)",
+                  widget.emi?.toStringAsFixed(2),
+                ),
+                buildReadonlyRow(
+                  "Total Interest (₹)",
+                  widget.totalInterest?.toStringAsFixed(2),
+                ),
+                buildReadonlyRow(
+                  "Total Payable (₹)",
+                  widget.totalAmount?.toStringAsFixed(2),
+                ),
               ],
             ),
 
@@ -268,10 +173,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
               ),
               label: const Text(
                 'Submit Loan',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -281,7 +183,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
   }
 
   // ---- Submit Handler ----
-  void submitLoan() {
+  void submitLoan() async {
     if (nameController.text.isEmpty ||
         idController.text.isEmpty ||
         phoneController.text.isEmpty ||
@@ -295,7 +197,6 @@ class _NewLoanPageState extends State<NewLoanPage> {
       return;
     }
 
-    // Construct loan object
     final loanData = {
       "customerName": nameController.text,
       "customerId": idController.text,
@@ -314,22 +215,36 @@ class _NewLoanPageState extends State<NewLoanPage> {
       "totalAmount": widget.totalAmount ?? 0,
     };
 
-    // TODO: integrate with Firebase or API
-    print("✅ Loan Created: $loanData");
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Loan created successfully!"),
-        backgroundColor: Colors.green,
-      ),
+    final response = await http.post(
+      Uri.parse("http://localhost:8080/api/loans/add"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(loanData),
     );
 
-    Navigator.pop(context);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Loan created successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed! ${response.statusCode}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // ---- UI Helpers ----
-  Widget buildTextField(TextEditingController controller, String hint,
-      {TextInputType type = TextInputType.text}) {
+  Widget buildTextField(
+    TextEditingController controller,
+    String hint, {
+    TextInputType type = TextInputType.text,
+  }) {
     const Color primary = Color(0xFFECB613);
     return TextField(
       controller: controller,
@@ -342,7 +257,10 @@ class _NewLoanPageState extends State<NewLoanPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -353,11 +271,10 @@ class _NewLoanPageState extends State<NewLoanPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
-              )),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.black54, fontSize: 14),
+          ),
           Text(
             value == null || value.isEmpty ? "—" : value,
             style: const TextStyle(
@@ -371,7 +288,10 @@ class _NewLoanPageState extends State<NewLoanPage> {
     );
   }
 
-  Widget buildSectionCard({required String title, required List<Widget> children}) {
+  Widget buildSectionCard({
+    required String title,
+    required List<Widget> children,
+  }) {
     const Color primary = Color(0xFFECB613);
     return Container(
       width: double.infinity,

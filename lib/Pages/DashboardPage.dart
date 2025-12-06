@@ -431,7 +431,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:loan_management_app/Components/NavigationBarPage.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final int branchId;
+  const DashboardPage({super.key, required this.branchId});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -448,10 +449,25 @@ class _DashboardPageState extends State<DashboardPage> {
     _loadGoldPrice();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadGoldPrice() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     final service = GoldPriceService();
+
     try {
       final data = await service.fetch24kGoldPriceINR();
+
+      if (!mounted) return; // 🔥 FIX
+
       if (data != null) {
         setState(() {
           _goldData = data;
@@ -459,12 +475,15 @@ class _DashboardPageState extends State<DashboardPage> {
           _isError = false;
         });
       } else {
+        if (!mounted) return; // 🔥 FIX
         setState(() {
           _isError = true;
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (!mounted) return; // 🔥 FIX
+
       setState(() {
         _isError = true;
         _isLoading = false;
@@ -487,7 +506,7 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Aurum Jewels",
+              "Tanishaq Jewels",
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -664,7 +683,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBarPage(),
+      bottomNavigationBar: NavigationBarPage(branchId: widget.branchId),
     );
   }
 

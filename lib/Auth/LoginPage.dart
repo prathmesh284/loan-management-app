@@ -249,7 +249,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
+  int? branchId;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -284,10 +284,11 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         String? token;
-
+      
         try {
           final data = jsonDecode(response.body);
           token = data['token'];
+          branchId = data['branchId'];
         } catch (_) {
           // Backend returned plain text JWT
           token = response.body;
@@ -304,7 +305,7 @@ class _LoginPageState extends State<LoginPage> {
           );
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const DashboardPage()),
+            MaterialPageRoute(builder: (_) => DashboardPage(branchId: branchId!,)),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

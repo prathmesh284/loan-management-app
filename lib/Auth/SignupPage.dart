@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:loan_management_app/Pages/DashboardPage.dart';
+import 'package:loan_management_app/Auth/LoginPage.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -532,7 +532,7 @@ class _SignUpPageState extends State<SignUpPage> {
             backgroundColor: Colors.green,
           ),
         );
-        ()=> MaterialPageRoute(builder: (context)=>DashboardPage());
+        ()=> MaterialPageRoute(builder: (context)=>LoginPage());
         // You can navigate to login page here if needed
       } else {
         print('❌ Signup failed: ${response.statusCode}');

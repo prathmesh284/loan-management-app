@@ -228,7 +228,8 @@ import 'package:flutter/material.dart';
 import 'package:loan_management_app/Pages/NewLoanPage.dart';
 
 class EmiCalculatorPage extends StatefulWidget {
-  const EmiCalculatorPage({super.key});
+  final int branchId;
+  const EmiCalculatorPage({super.key, required this.branchId});
 
   @override
   State<EmiCalculatorPage> createState() => _EmiCalculatorPageState();

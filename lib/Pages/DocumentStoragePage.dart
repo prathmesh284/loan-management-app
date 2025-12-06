@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:loan_management_app/Pages/UploadDocumentPage.dart';
 
 class DocumentStoragePage extends StatelessWidget {
-  const DocumentStoragePage({super.key});
+  final int branchId;
+  const DocumentStoragePage({super.key, required this.branchId});
 
   @override
   Widget build(BuildContext context) {

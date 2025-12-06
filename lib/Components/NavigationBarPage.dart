@@ -87,7 +87,8 @@ import 'package:loan_management_app/Pages/LoanManagementPage.dart';
 
 class NavigationBarPage extends StatefulWidget {
   final int initialIndex;
-  const NavigationBarPage({super.key, this.initialIndex = 0});
+  final int branchId;
+  const NavigationBarPage({super.key, this.initialIndex = 0,required this.branchId});
 
   @override
   State<NavigationBarPage> createState() => _NavigationBarPageState();
@@ -95,7 +96,6 @@ class NavigationBarPage extends StatefulWidget {
 
 class _NavigationBarPageState extends State<NavigationBarPage> {
   late int _selectedIndex;
-
   @override
   void initState() {
     super.initState();
@@ -110,22 +110,22 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
     Widget nextPage;
     switch (index) {
       case 0:
-        nextPage = const DashboardPage();
+        nextPage = DashboardPage(branchId: widget.branchId,);
         break;
       case 1:
-        nextPage = const CustomersPage();
+        nextPage = CustomersPage(branchId: widget.branchId);
         break;
       case 2:
-        nextPage = const LoanManagementPage();
+        nextPage = LoanManagementPage(branchId: widget.branchId);
         break;
       case 3:
-        nextPage = const DocumentStoragePage();
+        nextPage = DocumentStoragePage(branchId: widget.branchId);
         break;
       case 4:
-        nextPage = const EmiCalculatorPage();
+        nextPage = EmiCalculatorPage(branchId: widget.branchId);
         break;
       default:
-        nextPage = const DashboardPage();
+        nextPage = DashboardPage(branchId: widget.branchId,);
     }
 
     // Navigate to the selected page, replacing the previous one
@@ -134,7 +134,7 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           body: nextPage,
-          bottomNavigationBar: NavigationBarPage(initialIndex: index),
+          bottomNavigationBar: NavigationBarPage(initialIndex: index, branchId: widget.branchId,),
         ),
       ),
     );

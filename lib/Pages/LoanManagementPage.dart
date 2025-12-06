@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:loan_management_app/Pages/NewLoanPage.dart';
 
 class LoanManagementPage extends StatefulWidget {
-  const LoanManagementPage({super.key});
+  final int branchId;
+  const LoanManagementPage({super.key, required this.branchId});
 
   @override
   State<LoanManagementPage> createState() => _LoanManagementPageState();
@@ -63,7 +63,7 @@ class _LoanManagementPageState extends State<LoanManagementPage> {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          "Approve New Loan",
+                          "Recent Loans",
                           style: TextStyle(
                             fontWeight: isNewLoan ? FontWeight.bold : FontWeight.w500,
                             // color: isNewLoan
@@ -116,16 +116,16 @@ class _LoanManagementPageState extends State<LoanManagementPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFFecb613),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NewLoanPage()),
-          );
-        },
-        child: const Icon(Icons.add, color: Colors.black),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   backgroundColor: const Color(0xFFecb613),
+      //   onPressed: () {
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (_) => const NewLoanPage()),
+      //     );
+      //   },
+      //   child: const Icon(Icons.add, color: Colors.black),
+      // ),
       // bottomNavigationBar: _buildBottomNavBar(darkMode),
     );
   }
