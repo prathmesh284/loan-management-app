@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:loan_management_app/Pages/DashboardPage.dart';
 import 'package:loan_management_app/Pages/GoldLoanLandingPage.dart';
-// import 'package:loan_management_app/OnBoardingPage.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Get.putAsync(() async => ApiService());
   runApp(const GoldLoanApp());
 }
 
@@ -13,7 +15,7 @@ class GoldLoanApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Gold Loan Management',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,

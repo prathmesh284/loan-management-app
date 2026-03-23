@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
 class AddNewCustomerPage extends StatefulWidget {
   final int branchId;
@@ -18,7 +18,7 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
   final TextEditingController adharController = TextEditingController();
   final TextEditingController panController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
-
+  final apiService = Get.find<ApiService>();
   bool isLoading = false;
 
   // ---------------- API CALL -----------------
@@ -46,12 +46,7 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
     setState(() => isLoading = true);
 
     try {
-      final response = await http.post(
-        Uri.parse("http://localhost:8080/api/customers/add"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(customerData),
-      );
-
+      final response = await apiService.postRequest("/api/customers/add", customerData);
       setState(() => isLoading = false);
 
       if (response.statusCode == 200 || response.statusCode == 201) {

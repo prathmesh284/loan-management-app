@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
 import 'package:loan_management_app/Pages/AddNewCustomerPage.dart';
 import 'package:loan_management_app/Pages/CustomerDetailPage.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
 class CustomersPage extends StatefulWidget {
   final int branchId;
@@ -17,6 +18,7 @@ class _CustomersPageState extends State<CustomersPage> {
   List<dynamic> customers = [];
   bool isLoading = true;
   bool isError = false;
+  final apiService = Get.find<ApiService>();
 
   @override
   void initState() {
@@ -31,10 +33,8 @@ class _CustomersPageState extends State<CustomersPage> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse(
-          "http://localhost:8080/api/customers/branch/${widget.branchId}",
-        ), // ⚠️ Change to your IP!
+      final response = await apiService.getRequest(
+        "/api/customers/branch/${widget.branchId}",
       );
 
       if (response.statusCode == 200) {
@@ -172,7 +172,7 @@ class _CustomersPageState extends State<CustomersPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => CustomerDetailsPage(
-                                  customerId: c['customerId'], // ✅ pass ID
+                                  customerId: c['customerId'],
                                   name: c['name'] ?? "Unknown",
                                   imageUrl:
                                       "https://ui-avatars.com/api/?name=${c['name']}",

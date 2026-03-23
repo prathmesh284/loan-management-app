@@ -238,6 +238,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:loan_management_app/Pages/DashboardPage.dart';
 import 'package:loan_management_app/Auth/SignupPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -295,7 +296,11 @@ class _LoginPageState extends State<LoginPage> {
         }
 
         if (token != null && token.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString("jwt_token", token);
+          await prefs.setInt("branch_id", branchId!);
           debugPrint('✅ Token received: $token');
+          debugPrint("✅ Token saved in SharedPreferences");
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✅ Login successful! Welcome back.'),

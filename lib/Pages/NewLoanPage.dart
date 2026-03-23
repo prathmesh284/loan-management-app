@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import "package:http/http.dart" as http;
+import 'package:loan_management_app/Service/api_service.dart';
+
 class NewLoanPage extends StatefulWidget {
   final String? goldType;
   final String? weight;
@@ -215,27 +215,34 @@ class _NewLoanPageState extends State<NewLoanPage> {
       "totalAmount": widget.totalAmount ?? 0,
     };
 
-    final response = await http.post(
-      Uri.parse("http://localhost:8080/api/loans/add"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(loanData),
-    );
+    // final response = await http.post(
+    //   Uri.parse("http://localhost:8080/api/loans/add"),
+    //   headers: {"Content-Type": "application/json"},
+    //   body: jsonEncode(loanData),
+    // );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Loan created successfully!"),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed! ${response.statusCode}"),
-          backgroundColor: Colors.red,
-        ),
-      );
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.postRequest("/api/loans/add", loanData);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Loan created successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed! ${response.statusCode}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      print("❌ ERROR: $e");
+      print(stackTrace);
     }
   }
 

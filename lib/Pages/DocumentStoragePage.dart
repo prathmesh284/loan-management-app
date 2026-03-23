@@ -1,132 +1,277 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loan_management_app/Components/DocumentPreviewPage.dart';
 import 'package:loan_management_app/Pages/UploadDocumentPage.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
-class DocumentStoragePage extends StatelessWidget {
+class DocumentStoragePage extends StatefulWidget {
   final int branchId;
   const DocumentStoragePage({super.key, required this.branchId});
 
   @override
-  Widget build(BuildContext context) {
-    final Color primaryColor = const Color(0xFFecb613);
+  State<DocumentStoragePage> createState() => _DocumentStoragePageState();
+}
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.9),
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          "Document Storage",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.black87,
+class _DocumentStoragePageState extends State<DocumentStoragePage> {
+  final apiService = Get.find<ApiService>();
+
+  Map<String, List<dynamic>> groupedDocs = {};
+  final Color primaryColor = const Color(0xFFecb613);
+
+  // 🔍 SEARCH + GROUPING
+  void searchDocuments(String keyword) async {
+    final res = await apiService.getRequest(
+      "/documents/search?keyword=$keyword",
+    );
+
+    if (res.statusCode == 200) {
+      final List data = jsonDecode(res.body);
+
+      Map<String, List<dynamic>> temp = {};
+
+      for (var doc in data) {
+        String key = doc['customerId'];
+
+        if (!temp.containsKey(key)) {
+          temp[key] = [];
+        }
+        temp[key]!.add(doc);
+      }
+
+      setState(() {
+        groupedDocs = temp;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    searchDocuments("");
+  }
+
+  // 👤 USER CARD
+  Widget buildUserCard(String name, String id, List docs) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UserDocumentsPage(
+              customerName: name,
+              customerId: id,
+              documents: docs,
+            ),
           ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: primaryColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 22),
-          onPressed: () => Navigator.pop(context),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: primaryColor.withOpacity(0.2),
+              child: Icon(Icons.person, color: primaryColor),
+            ),
+
+            const SizedBox(width: 12),
+
+            // 📄 INFO
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    id,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+
+            // 📊 DOC COUNT
+            Column(
+              children: [
+                Text(
+                  "${docs.length}",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+                const Text("Docs", style: TextStyle(fontSize: 10)),
+              ],
+            ),
+
+            const SizedBox(width: 10),
+
+            const Icon(Icons.chevron_right, color: Colors.black45),
+          ],
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          "Document Storage",
+          style: TextStyle(color: Colors.black87),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+
       body: Padding(
-        padding: const EdgeInsets.all(14.0),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search, size: 20, color: Colors.black54),
-                hintText: "Search by User ID",
-                hintStyle: const TextStyle(color: Colors.black45, fontSize: 13),
-                filled: true,
-                fillColor: primaryColor.withOpacity(0.08),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+            // 🔍 SEARCH
+            Container(
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextField(
+                onChanged: searchDocuments,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  hintText: "Search by name or phone",
+                  border: InputBorder.none,
                 ),
               ),
             ),
-            const SizedBox(height: 18),
-            const Text(
-              "Recent Documents",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: Colors.black87,
-              ),
+
+            const SizedBox(height: 16),
+
+            // 📌 HEADER
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Customers",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  "${groupedDocs.length} users",
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+
+            const SizedBox(height: 10),
+
+            // 📂 LIST
             Expanded(
-              child: ListView(
-                children: const [
-                  DocumentTile(userId: "#12345", documents: "3 documents"),
-                  DocumentTile(userId: "#67890", documents: "2 documents"),
-                  DocumentTile(userId: "#11223", documents: "5 documents"),
-                  DocumentTile(userId: "#44556", documents: "1 document"),
-                ],
-              ),
+              child: groupedDocs.isEmpty
+                  ? const Center(child: Text("No documents found"))
+                  : ListView.builder(
+                      itemCount: groupedDocs.keys.length,
+                      itemBuilder: (context, index) {
+                        String customerId = groupedDocs.keys.elementAt(index);
+                        List docs = groupedDocs[customerId]!;
+
+                        String customerName = docs[0]['customerName'] ?? "";
+
+                        return buildUserCard(customerName, customerId, docs);
+                      },
+                    ),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryColor,
+        child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const UploadDocumentsPage()),
+            MaterialPageRoute(
+              builder: (_) => const UploadDocumentsPage(),
+            ),
           );
         },
-        child: const Icon(Icons.add, color: Colors.white, size: 26),
       ),
-      // bottomNavigationBar: BottomNavigationBar(
-      //   type: BottomNavigationBarType.fixed,
-      //   selectedItemColor: primaryColor,
-      //   unselectedItemColor: Colors.black54,
-      //   currentIndex: 3,
-      //   items: const [
-      //     BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Dashboard"),
-      //     BottomNavigationBarItem(icon: Icon(Icons.group), label: "Customers"),
-      //     BottomNavigationBarItem(icon: Icon(Icons.monetization_on), label: "Loans"),
-      //     BottomNavigationBarItem(icon: Icon(Icons.folder, fill: 1), label: "Documents"),
-      //     BottomNavigationBarItem(icon: Icon(Icons.calculate), label: "Calculator"),
-      //   ],
-      // ),
     );
   }
 }
 
-class DocumentTile extends StatelessWidget {
-  final String userId;
-  final String documents;
+////////////////////////////////////////////////////////
+/// 📂 USER DOCUMENT PAGE (INSIDE SAME FILE)
+////////////////////////////////////////////////////////
 
-  const DocumentTile({super.key, required this.userId, required this.documents});
+class UserDocumentsPage extends StatelessWidget {
+  final String customerName;
+  final String customerId;
+  final List documents;
+
+  const UserDocumentsPage({
+    super.key,
+    required this.customerName,
+    required this.customerId,
+    required this.documents,
+  });
 
   @override
   Widget build(BuildContext context) {
     final Color primaryColor = const Color(0xFFecb613);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: primaryColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: primaryColor.withOpacity(0.2),
-          child: Icon(Icons.person, color: primaryColor, size: 20),
+
+    return Scaffold(
+      appBar: AppBar(title: Text(customerName)),
+      body: Padding(
+        padding: const EdgeInsets.all(14),
+        child: ListView.builder(
+          itemCount: documents.length,
+          itemBuilder: (context, index) {
+            final doc = documents[index];
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: Icon(Icons.insert_drive_file, color: primaryColor),
+                title: Text(doc['docType']),
+                subtitle: const Text("Tap to view"),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: () {
+                  // 👉 Here you can open S3 URL
+                  String url = doc['s3Url'] ?? "";
+                  print("Open file: $url");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DocumentPreviewPage(url: url),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         ),
-        title: Text(
-          "User ID: $userId",
-          style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          documents,
-          style: const TextStyle(fontSize: 11, color: Colors.black54),
-        ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.black45, size: 18),
       ),
     );
   }

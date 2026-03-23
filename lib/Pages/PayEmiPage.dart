@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
 class PayEmiPage extends StatefulWidget {
+  final String loanId; // ✅ added
   final double emiAmount;
-  final String? nextEmiDate; // Nullable
+  final String? nextEmiDate;
 
   const PayEmiPage({
     super.key,
+    required this.loanId, // ✅ added
     required this.emiAmount,
     this.nextEmiDate,
   });
@@ -17,6 +21,7 @@ class PayEmiPage extends StatefulWidget {
 class _PayEmiPageState extends State<PayEmiPage> {
   String selectedMethod = "cash";
   final TextEditingController upiController = TextEditingController();
+  bool isLoading = false; // ✅ added
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +33,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
       appBar: AppBar(
         title: const Text(
           "Pay EMI",
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
         backgroundColor: bg,
         elevation: 0.3,
@@ -56,7 +58,10 @@ class _PayEmiPageState extends State<PayEmiPage> {
                     ),
                     child: Column(
                       children: [
-                        rowItem("EMI Amount", "₹${widget.emiAmount.toStringAsFixed(2)}"),
+                        rowItem(
+                          "EMI Amount",
+                          "₹${(widget.emiAmount).toStringAsFixed(2)}",
+                        ),
                         const SizedBox(height: 8),
                         rowItem(
                           "Due Date",
@@ -108,7 +113,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: handlePayment,
+                      onPressed: isLoading ? null : handlePayment,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: gold,
                         foregroundColor: Colors.black87,
@@ -117,13 +122,15 @@ class _PayEmiPageState extends State<PayEmiPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        "Pay Now",
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.black)
+                          : const Text(
+                              "Pay Now",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
 
@@ -138,7 +145,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
   }
 
   // ---------------- HANDLER ----------------
-  void handlePayment() {
+  void handlePayment() async {
     if (selectedMethod == "upi" && upiController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -149,18 +156,49 @@ class _PayEmiPageState extends State<PayEmiPage> {
       return;
     }
 
-    String message = selectedMethod == "cash"
-        ? "Cash Payment Successful!"
-        : "UPI payment request sent!";
+    setState(() => isLoading = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
+    try {
+      final apiService = Get.find<ApiService>();
 
-    Navigator.pop(context);
+      final body = {
+        "loanId": widget.loanId,
+        "amount": widget.emiAmount,
+        "paymentMethod": selectedMethod,
+      };
+
+      final response = await apiService.postRequest(
+        "/api/emi/pay", // 🔥 your backend endpoint
+        body,
+      );
+
+      print("📡 EMI STATUS: ${response.statusCode}");
+      print("📦 EMI BODY: ${response.body}");
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Payment Successful"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pop(context, {"success": true, "loanId": widget.loanId});
+      } else {
+        throw Exception("Payment failed");
+      }
+    } catch (e) {
+      print("❌ ERROR: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Payment Failed"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    setState(() => isLoading = false);
   }
 
   // ---------------- REUSABLE WIDGETS ----------------
@@ -169,7 +207,10 @@ class _PayEmiPageState extends State<PayEmiPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.black54, fontSize: 13),
+        ),
         Text(
           value,
           style: const TextStyle(
@@ -208,7 +249,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                     color: gold.withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -218,10 +259,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
             const SizedBox(width: 14),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             Icon(
