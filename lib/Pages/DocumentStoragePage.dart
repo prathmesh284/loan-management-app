@@ -22,7 +22,7 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
   // 🔍 SEARCH + GROUPING
   void searchDocuments(String keyword) async {
     final res = await apiService.getRequest(
-      "/documents/search?keyword=$keyword",
+      "/api/documents/search?keyword=$keyword",
     );
 
     if (res.statusCode == 200) {
@@ -204,13 +204,18 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => const UploadDocumentsPage(),
             ),
           );
+          
+          // If upload was successful, refresh the document list
+          if (result == true) {
+            searchDocuments("");
+          }
         },
       ),
     );

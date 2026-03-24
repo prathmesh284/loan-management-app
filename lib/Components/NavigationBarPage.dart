@@ -115,13 +115,13 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
       case 1:
         nextPage = CustomersPage(branchId: widget.branchId);
         break;
+      // case 2:
+      //   nextPage = LoanManagementPage(branchId: widget.branchId);
+      //   break;
       case 2:
-        nextPage = LoanManagementPage(branchId: widget.branchId);
-        break;
-      case 3:
         nextPage = DocumentStoragePage(branchId: widget.branchId);
         break;
-      case 4:
+      case 3:
         nextPage = EmiCalculatorPage(branchId: widget.branchId);
         break;
       default:
@@ -156,8 +156,8 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
         BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_rounded), label: "Dashboard"),
         BottomNavigationBarItem(icon: Icon(Icons.group), label: "Customers"),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet), label: "Loans"),
+        // BottomNavigationBarItem(
+        //     icon: Icon(Icons.account_balance_wallet), label: "Loans"),
         BottomNavigationBarItem(
             icon: Icon(Icons.description), label: "Documents"),
         BottomNavigationBarItem(

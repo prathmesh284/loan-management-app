@@ -3,14 +3,18 @@ import 'package:get/get.dart';
 import 'package:loan_management_app/Service/api_service.dart';
 
 class PayEmiPage extends StatefulWidget {
-  final String loanId; // ✅ added
-  final double emiAmount;
+  final String loanId;
+  final double totalLoanAmount;
+  final int totalEmis;
+  final int paidEmis;
   final String? nextEmiDate;
 
   const PayEmiPage({
     super.key,
-    required this.loanId, // ✅ added
-    required this.emiAmount,
+    required this.loanId,
+    required this.totalLoanAmount,
+    required this.totalEmis,
+    required this.paidEmis,
     this.nextEmiDate,
   });
 
@@ -21,7 +25,22 @@ class PayEmiPage extends StatefulWidget {
 class _PayEmiPageState extends State<PayEmiPage> {
   String selectedMethod = "cash";
   final TextEditingController upiController = TextEditingController();
-  bool isLoading = false; // ✅ added
+  final TextEditingController cashReferenceController = TextEditingController();
+  bool isLoading = false;
+
+  // 💰 CALCULATE EMI AMOUNT (Annual payment = Total Loan / Number of EMIs)
+  double get emiAmount {
+    if (widget.totalEmis <= 0) return 0;
+    return widget.totalLoanAmount / widget.totalEmis;
+  }
+
+  double get payableAmount {
+    return emiAmount;
+  }
+
+  double get totalAmount {
+    return emiAmount;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,8 +78,20 @@ class _PayEmiPageState extends State<PayEmiPage> {
                     child: Column(
                       children: [
                         rowItem(
+                          "Total Loan Amount",
+                          "₹${widget.totalLoanAmount.toStringAsFixed(2)}",
+                        ),
+                        const SizedBox(height: 8),
+                        rowItem(
                           "EMI Amount",
-                          "₹${(widget.emiAmount).toStringAsFixed(2)}",
+                          "₹${emiAmount.toStringAsFixed(2)}",
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        rowItem(
+                          "Total Payable",
+                          "₹${payableAmount.toStringAsFixed(2)}",
                         ),
                         const SizedBox(height: 8),
                         rowItem(
@@ -103,6 +134,9 @@ class _PayEmiPageState extends State<PayEmiPage> {
                   ),
 
                   const SizedBox(height: 20),
+
+                  // ---------- CASH PAYMENT SECTION ----------
+                  if (selectedMethod == "cash") cashPaymentSection(),
 
                   // ---------- UPI INPUT ----------
                   if (selectedMethod == "upi") upiSection(),
@@ -156,6 +190,104 @@ class _PayEmiPageState extends State<PayEmiPage> {
       return;
     }
 
+    if (selectedMethod == "cash" && cashReferenceController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a reference number or receipt number"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // 🔥 SHOW CONFIRMATION DIALOG FOR CASH
+    if (selectedMethod == "cash") {
+      showCashPaymentConfirmation();
+    } else {
+      processPayment();
+    }
+  }
+
+  // 🎯 CASH PAYMENT CONFIRMATION DIALOG
+  void showCashPaymentConfirmation() {
+    const Color gold = Color(0xFFecb613);
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Cash Payment"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Payment Details:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Payable Amount:"),
+                  Text(
+                    "₹${payableAmount.toStringAsFixed(2)}",
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Reference #:"),
+                  Text(
+                    cashReferenceController.text,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Payment Method:"),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: gold.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      "Cash",
+                      style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFecb613)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: gold),
+              onPressed: () {
+                Navigator.pop(context);
+                processPayment();
+              },
+              child: const Text(
+                "Confirm Payment",
+                style: TextStyle(color: Colors.black87),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 💳 PROCESS PAYMENT
+  void processPayment() async {
     setState(() => isLoading = true);
 
     try {
@@ -163,12 +295,12 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
       final body = {
         "loanId": widget.loanId,
-        "amount": widget.emiAmount,
+        "amountPaid": emiAmount,
         "paymentMethod": selectedMethod,
       };
 
       final response = await apiService.postRequest(
-        "/api/emi/pay", // 🔥 your backend endpoint
+        "/api/emis/pay",
         body,
       );
 
@@ -178,7 +310,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Payment Successful"),
+            content: Text("✅ Payment Successful"),
             backgroundColor: Colors.green,
           ),
         );
@@ -192,7 +324,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Payment Failed"),
+          content: Text("❌ Payment Failed"),
           backgroundColor: Colors.red,
         ),
       );
@@ -291,6 +423,95 @@ class _PayEmiPageState extends State<PayEmiPage> {
             hintText: "example@upi",
             filled: true,
             fillColor: gold.withOpacity(0.12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 💰 CASH PAYMENT SECTION
+  Widget cashPaymentSection() {
+    const Color gold = Color(0xFFecb613);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 💵 CASH DETAILS
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: gold.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: gold, width: 0.5),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.attach_money, color: gold, size: 24),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Cash Payment",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          "Please settle the amount in cash",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Amount to Pay:", style: TextStyle(fontSize: 13)),
+                  Text(
+                    "₹${payableAmount.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFFecb613),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // 📝 REFERENCE NUMBER INPUT
+        const Text(
+          "Receipt / Reference Number",
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: cashReferenceController,
+          decoration: InputDecoration(
+            hintText: "Enter receipt or reference number",
+            prefixIcon: const Icon(Icons.receipt, color: gold),
+            filled: true,
+            fillColor: gold.withOpacity(0.08),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

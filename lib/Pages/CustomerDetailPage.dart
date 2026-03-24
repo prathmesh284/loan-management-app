@@ -600,28 +600,102 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     }
 
     double progress = (paid / total).clamp(0, 1);
+    
+    // 💰 Payment amounts
+    double totalAmount = toDouble(loan['totalAmount']);
+    double paidAmount = toDouble(loan['paidAmount']);
+    double remainingAmount = toDouble(loan['remainingAmount']);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("Payment Progress",
             style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
+        // 📊 Progress Bar
         LinearProgressIndicator(
           value: progress,
           color: const Color(0xFFecb613),
           backgroundColor: Colors.grey.shade300,
-          minHeight: 6,
+          minHeight: 8,
+        ),
+
+        const SizedBox(height: 12),
+
+        // 📈 EMI Progress
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("${paid.toInt()} / ${total.toInt()} EMIs Paid",
+                style: const TextStyle(fontWeight: FontWeight.w500)),
+            Text("${(progress * 100).toStringAsFixed(1)}%",
+                style: const TextStyle(
+                    color: Color(0xFFecb613), fontWeight: FontWeight.w600)),
+          ],
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // 💳 Amount Paid
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green.shade200),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Amount Paid",
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  Text("₹${paidAmount.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                          fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Remaining Amount",
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  Text("₹${remainingAmount.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange,
+                          fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total Amount",
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
+                  Text("₹${totalAmount.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                          fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
         ),
 
         const SizedBox(height: 8),
 
-        Text("${paid.toInt()} / ${total.toInt()} EMIs Paid"),
-
-        const SizedBox(height: 4),
-
-        Text("Remaining: ${(total - paid).toInt()} EMIs"),
+        Text("Remaining: ${(total - paid).toInt()} EMIs",
+            style: const TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );
   }
@@ -645,14 +719,18 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 MaterialPageRoute(
                   builder: (context) => PayEmiPage(
                     loanId: activeLoan?['id']?.toString() ?? "",
-                    emiAmount: toDouble(activeLoan?['emiAmount']),
+                    totalLoanAmount: toDouble(activeLoan?['totalAmount']),
+                    totalEmis: toDouble(activeLoan?['totalEmis']).toInt(),
+                    paidEmis: toDouble(activeLoan?['paidEmis']).toInt(),
                     nextEmiDate: activeLoan?['nextEmiDate'],
                   ),
                 ),
               );
 
-              if (result == true) {
-                fetchCustomerLoan();
+              if (result != null && result is Map && result["success"] == true) {
+                // 🔄 Refresh loan details after successful payment
+                await Future.delayed(const Duration(milliseconds: 500));
+                await fetchCustomerLoan();
               }
             },
             child: const Text("Pay EMI"),

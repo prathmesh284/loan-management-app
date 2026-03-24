@@ -182,7 +182,7 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
 
     try {
       String? token = await _getToken();
-      var uri = Uri.parse("http://127.0.0.1:8080/documents/upload");
+      var uri = Uri.parse("http://127.0.0.1:8080/api/documents/upload");
       print("Sending request to: $uri");
       var request = http.MultipartRequest("POST", uri);
       request.headers.addAll({
@@ -215,9 +215,10 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
 
       setState(() => isLoading = false);
 
-      if (res.statusCode == 200) {
+      if (res.statusCode == 201) {
         Get.snackbar("Success", "Document uploaded 🎉");
-        Navigator.pop(context);
+        // Return true to indicate successful upload
+        Navigator.pop(context, true);
       } else {
         Get.snackbar("Error", "Upload failed: $responseBody");
       }
