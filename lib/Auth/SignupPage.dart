@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:loan_management_app/Auth/LoginPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -25,6 +25,65 @@ class _SignUpPageState extends State<SignUpPage> {
   String? gender;
   String? branch;
   bool isEmailVerified = false;
+  
+  List<String> branches = [];
+  bool isLoadingBranches = true;
+  String? branchError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBranches();
+  }
+
+  Future<void> _fetchBranches() async {
+    try {
+      const String apiUrl = "http://localhost:8080/api/branches";
+      // const String apiUrl = "http://10.0.2.2:8080/api/branches"; // For Android emulator
+      
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = jsonDecode(response.body);
+        setState(() {
+          branches = jsonData
+              .map((branch) => branch['branchName'].toString())
+              .toList();
+          isLoadingBranches = false;
+        });
+      } else {
+        setState(() {
+          branchError = 'Failed to load branches';
+          isLoadingBranches = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error fetching branches: $e');
+      setState(() {
+        branchError = 'Error loading branches: $e';
+        isLoadingBranches = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _aadhaarController.dispose();
+    _phoneController.dispose();
+    _nameController.dispose();
+    _usernameController.dispose();
+    _dobController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,8 +176,9 @@ class _SignUpPageState extends State<SignUpPage> {
                       lastDate: DateTime.now(),
                     );
                     if (pickedDate != null) {
+                      // ISO format: yyyy-MM-dd
                       _dobController.text =
-                          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+                          "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
                     }
                   },
                 ),
@@ -129,9 +189,9 @@ class _SignUpPageState extends State<SignUpPage> {
                   value: gender,
                   decoration: _inputDecoration("Gender"),
                   items: const [
-                    DropdownMenuItem(value: "Male", child: Text("Male")),
-                    DropdownMenuItem(value: "Female", child: Text("Female")),
-                    DropdownMenuItem(value: "Other", child: Text("Other")),
+                    DropdownMenuItem(value: "MALE", child: Text("Male")),
+                    DropdownMenuItem(value: "FEMALE", child: Text("Female")),
+                    DropdownMenuItem(value: "OTHER", child: Text("Other")),
                   ],
                   onChanged: (value) => setState(() => gender = value),
                   validator: (value) =>
@@ -140,46 +200,49 @@ class _SignUpPageState extends State<SignUpPage> {
                 ),
                 const SizedBox(height: 10),
 
-                // Jeweller Shop Name
-                DropdownButtonFormField<String>(
-                  value: shopName,
-                  decoration: _inputDecorationDropBox(
-                    "Select Jeweler Shop Name",
+                // Jeweller Shop Name (Dynamically Loaded)
+                if (isLoadingBranches)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 15),
+                    child: CircularProgressIndicator(color: Color(0xFFF2B90D)),
+                  )
+                else if (branchError != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade100,
+                      border: Border.all(color: Colors.red),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      branchError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    value: shopName,
+                    decoration: _inputDecorationDropBox(
+                      "Select Jeweler Shop Name",
+                    ),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      backgroundColor: Colors.white,
+                    ),
+                    items: branches
+                        .map((branch) => DropdownMenuItem(
+                              value: branch,
+                              child: Text(branch),
+                            ))
+                        .toList(),
+                    focusColor: Colors.grey,
+                    onChanged: (value) => setState(() => shopName = value),
+                    validator: (value) =>
+                        value == null ? 'Please select your jeweller shop' : null,
                   ),
-                  dropdownColor: Colors.white, // background of dropdown menu
-                  style: const TextStyle(
-                    color: Colors.black, // dropdown item text color
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    backgroundColor: Colors.white,
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: "Tanishq Jewellers",
-                      child: Text("Tanishq Jewellers"),
-                    ),
-                    DropdownMenuItem(
-                      value: "Kalyan Jewellers",
-                      child: Text("Kalyan Jewellers"),
-                    ),
-                    DropdownMenuItem(
-                      value: "Malabar Gold",
-                      child: Text("Malabar Gold"),
-                    ),
-                    DropdownMenuItem(
-                      value: "PC Jeweller",
-                      child: Text("PC Jeweller"),
-                    ),
-                    DropdownMenuItem(
-                      value: "Local Jeweller",
-                      child: Text("Local Jeweller"),
-                    ),
-                  ],
-                  focusColor: Colors.grey,
-                  onChanged: (value) => setState(() => shopName = value),
-                  validator: (value) =>
-                      value == null ? 'Please select your jeweller shop' : null,
-                ),
 
                 const SizedBox(height: 10),
 
@@ -487,11 +550,9 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _registerUser(BuildContext context) async {
-    // ⚙️ Change this to your actual backend endpoint
     const String apiUrl = "http://localhost:8080/api/auth/signup";
     // const String apiUrl = "http://10.0.2.2:8080/api/auth/signup";
 
-    // ✅ Collect all user data to match your Java entity fields
     final Map<String, dynamic> userData = {
       "username": _usernameController.text.trim(),
       "email": _emailController.text.trim(),
@@ -504,7 +565,6 @@ class _SignUpPageState extends State<SignUpPage> {
     };
 
     try {
-      // Show loader while hitting API
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -516,27 +576,48 @@ class _SignUpPageState extends State<SignUpPage> {
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {
-          'Content-Type': 'application/json', // ✅ important
-          'Accept': 'application/json', // ✅ optional but recommended
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: jsonEncode(userData),
       );
 
+      if (!mounted) return;
       Navigator.pop(context); // close loader
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ Signup successful: ${response.body}');
+        
+        // Save user ID to SharedPreferences for dashboard
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final int userId = responseData['id'] ?? 0;
+        final int branchId = responseData['branch']?['id'] ?? 1;
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('user_id', userId);
+        await prefs.setInt('branch_id', branchId);
+        await prefs.setString('username', _usernameController.text.trim());
+        
+        if (!mounted) return;
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("✅ Account created successfully!"),
             backgroundColor: Colors.green,
           ),
         );
-        ()=> MaterialPageRoute(builder: (context)=>LoginPage());
-        // You can navigate to login page here if needed
+        
+        // Navigate to dashboard
+        Navigator.pushReplacementNamed(
+          context,
+          '/dashboard',
+          arguments: {'branchId': branchId},
+        );
       } else {
         print('❌ Signup failed: ${response.statusCode}');
         print('Response body: ${response.body}');
+        
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("⚠️ Signup failed: ${response.body}"),
@@ -546,6 +627,7 @@ class _SignUpPageState extends State<SignUpPage> {
       }
     } catch (e) {
       print('⚠️ Error occurred: $e');
+      if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:loan_management_app/Pages/DashboardPage.dart';
 import 'package:loan_management_app/Auth/SignupPage.dart';
 
 class LoginPage extends StatefulWidget {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:loan_management_app/Service/api_service.dart';
+import 'package:loan_management_app/Validators/form_validators.dart';
 
 class NewLoanPage extends StatefulWidget {
   final String? goldType;
@@ -40,12 +41,22 @@ class _NewLoanPageState extends State<NewLoanPage> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill date with today's date
     dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    idController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    dateController.dispose();
+    super.dispose();
   }
 
   @override
@@ -119,9 +130,8 @@ class _NewLoanPageState extends State<NewLoanPage> {
                       lastDate: DateTime(2035),
                     );
                     if (pickedDate != null) {
-                      dateController.text = DateFormat(
-                        'dd-MM-yyyy',
-                      ).format(pickedDate);
+                      // Format as ISO date (YYYY-MM-DD) for backend compatibility
+                      dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
                     }
                   },
                 ),
@@ -202,7 +212,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
       "customerId": idController.text,
       "phone": phoneController.text,
       "address": addressController.text,
-      "loanDate": dateController.text,
+      "loanDate": dateController.text, // ISO format: yyyy-MM-dd
       "goldType": widget.goldType ?? "N/A",
       "weight": widget.weight ?? "N/A",
       "goldPrice": widget.goldPrice ?? "N/A",

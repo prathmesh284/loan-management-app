@@ -1,6 +1,3 @@
-// import 'dart:math';
-// import 'package:flutter/material.dart';
-
 // class EmiCalculatorPage extends StatefulWidget {
 //   const EmiCalculatorPage({super.key});
 
@@ -226,6 +223,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:loan_management_app/Pages/NewLoanPage.dart';
+import 'package:loan_management_app/Service/GoldPriceService.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EmiCalculatorPage extends StatefulWidget {
   final int branchId;
@@ -243,22 +242,53 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
   final TextEditingController ltvController = TextEditingController();
 
   String goldType = "Ring";
+  String priceUnit = "per gram"; // "per gram" or "per kg"
   double loanAmount = 0.0;
   double monthlyEmi = 0.0;
   double totalInterest = 0.0;
   double totalAmount = 0.0;
+  bool _isFetchingPrice = false;
 
-  void fetchGoldPrice() {
-    setState(() {
-      goldPriceController.text = "6250"; // Mock price (per gram)
-    });
+  Future<void> fetchGoldPrice() async {
+    setState(() => _isFetchingPrice = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Gold price fetched successfully!"),
-        backgroundColor: Colors.green,
-      ),
-    );
+    try {
+      final service = GoldPriceService();
+      double price;
+
+      if (priceUnit == "per gram") {
+        price = await service.getGoldPricePerGram(forceFresh: true);
+      } else {
+        price = await service.getGoldPricePerKg(forceFresh: true);
+      }
+
+      if (mounted) {
+        setState(() {
+          goldPriceController.text = price.toStringAsFixed(2);
+          _isFetchingPrice = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "✅ Gold price fetched: ₹${price.toStringAsFixed(2)}/$priceUnit",
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFetchingPrice = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("⚠️ Failed to fetch gold price: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void calculateGoldLoan() {
@@ -269,7 +299,11 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
     final double ltv = double.tryParse(ltvController.text) ?? 75; // Default 75%
 
     if (weight > 0 && goldPrice > 0 && rate > 0 && months > 0) {
-      final double eligibleLoan = weight * goldPrice * (ltv / 100);
+      // Normalize goldPrice to per gram
+      // weight is in grams, so if price is per kg, convert to per gram
+      final double pricePerGram = priceUnit == "per kg" ? goldPrice / 1000 : goldPrice;
+      
+      final double eligibleLoan = weight * pricePerGram * (ltv / 100);
       final double emi = (eligibleLoan * rate * pow(1 + rate, months)) /
           (pow(1 + rate, months) - 1);
       final double totalPayment = emi * months;

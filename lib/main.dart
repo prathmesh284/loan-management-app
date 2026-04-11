@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:loan_management_app/Pages/GoldLoanLandingPage.dart';
 import 'package:loan_management_app/Auth/LoginPage.dart';
-import 'package:loan_management_app/Pages/DashboardPage.dart';
+import 'package:loan_management_app/Components/NavigationBarPage.dart';
 import 'package:loan_management_app/Service/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -52,7 +52,7 @@ class GoldLoanApp extends StatelessWidget {
           ThemeData.dark().textTheme,
         ),
       ),
-      home: isLoggedIn ? DashboardPage(branchId: branchId) : const GoldLoanLandingPage(),
+      home: isLoggedIn ? NavigationBarPage(branchId: branchId) : const GoldLoanLandingPage(),
       
       // Define named routes for navigation
       routes: {
@@ -60,7 +60,7 @@ class GoldLoanApp extends StatelessWidget {
         '/dashboard': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
           final branchId = args?['branchId'] ?? 1;
-          return DashboardPage(branchId: branchId);
+          return NavigationBarPage(initialIndex: 0, branchId: branchId);
         },
       },
     );

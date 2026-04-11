@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loan_management_app/Service/api_service.dart';
+import 'package:loan_management_app/Validators/form_validators.dart';
 
 class PayEmiPage extends StatefulWidget {
   final String loanId;
@@ -26,6 +27,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
   String selectedMethod = "cash";
   final TextEditingController upiController = TextEditingController();
   final TextEditingController cashReferenceController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
 
   // 💰 CALCULATE EMI AMOUNT (Annual payment = Total Loan / Number of EMIs)

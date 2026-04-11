@@ -83,12 +83,12 @@ import 'package:loan_management_app/Pages/DashboardPage.dart';
 import 'package:loan_management_app/Pages/CustomersPage.dart';
 import 'package:loan_management_app/Pages/DocumentStoragePage.dart';
 import 'package:loan_management_app/Pages/EMICalculatorPage.dart';
-import 'package:loan_management_app/Pages/LoanManagementPage.dart';
+import 'package:loan_management_app/Pages/LoanHistoryPage.dart';
 
 class NavigationBarPage extends StatefulWidget {
   final int initialIndex;
   final int branchId;
-  const NavigationBarPage({super.key, this.initialIndex = 0,required this.branchId});
+  const NavigationBarPage({super.key, this.initialIndex = 0, required this.branchId});
 
   @override
   State<NavigationBarPage> createState() => _NavigationBarPageState();
@@ -96,73 +96,63 @@ class NavigationBarPage extends StatefulWidget {
 
 class _NavigationBarPageState extends State<NavigationBarPage> {
   late int _selectedIndex;
+  
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
   }
 
+  late final List<Widget Function()> _pageBuilders = [
+    () => DashboardPage(branchId: widget.branchId),
+    () => CustomersPage(branchId: widget.branchId),
+    () => DocumentStoragePage(branchId: widget.branchId),
+    () => LoanHistoryPage(branchId: widget.branchId),
+    () => EmiCalculatorPage(branchId: widget.branchId),
+  ];
+
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return; // prevent reloading same page
-
     setState(() => _selectedIndex = index);
-
-    Widget nextPage;
-    switch (index) {
-      case 0:
-        nextPage = DashboardPage(branchId: widget.branchId,);
-        break;
-      case 1:
-        nextPage = CustomersPage(branchId: widget.branchId);
-        break;
-      // case 2:
-      //   nextPage = LoanManagementPage(branchId: widget.branchId);
-      //   break;
-      case 2:
-        nextPage = DocumentStoragePage(branchId: widget.branchId);
-        break;
-      case 3:
-        nextPage = EmiCalculatorPage(branchId: widget.branchId);
-        break;
-      default:
-        nextPage = DashboardPage(branchId: widget.branchId,);
-    }
-
-    // Navigate to the selected page, replacing the previous one
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: nextPage,
-          bottomNavigationBar: NavigationBarPage(initialIndex: index, branchId: widget.branchId,),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFFecb613);
 
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: primaryColor, 
-      backgroundColor: const Color.fromARGB(255, 57, 48, 23),
-      unselectedItemColor: Colors.grey.shade600,
-      showUnselectedLabels: true,
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-      items: const [
-        BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded), label: "Dashboard"),
-        BottomNavigationBarItem(icon: Icon(Icons.group), label: "Customers"),
-        // BottomNavigationBarItem(
-        //     icon: Icon(Icons.account_balance_wallet), label: "Loans"),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.description), label: "Documents"),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.calculate), label: "Calculator"),
-      ],
+    return Scaffold(
+      body: _pageBuilders[_selectedIndex](),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: primaryColor,
+        backgroundColor: const Color.fromARGB(255, 57, 48, 23),
+        unselectedItemColor: Colors.grey.shade600,
+        showUnselectedLabels: true,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view_rounded),
+            label: "Dashboard",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group),
+            label: "Customers",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description),
+            label: "Documents",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: "Loan History",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calculate),
+            label: "Calculator",
+          ),
+        ],
+      ),
     );
   }
 }

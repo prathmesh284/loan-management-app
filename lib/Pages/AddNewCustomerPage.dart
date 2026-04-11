@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loan_management_app/Service/api_service.dart';
+import 'package:loan_management_app/Validators/form_validators.dart';
 
 class AddNewCustomerPage extends StatefulWidget {
   final int branchId;
@@ -19,14 +20,26 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
   final TextEditingController panController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final apiService = Get.find<ApiService>();
+  final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
 
-  // ---------------- API CALL -----------------
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    adharController.dispose();
+    panController.dispose();
+    addressController.dispose();
+    super.dispose();
+  }
+
+  // ==================== VALIDATION & API CALL ====================
   Future<void> saveCustomer() async {
-    if (nameController.text.isEmpty || phoneController.text.isEmpty) {
+    if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Name & Phone Number are required."),
+          content: Text("Please fix the errors in the form"),
           backgroundColor: Colors.red,
         ),
       );
@@ -137,21 +150,22 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  sectionTitle("Personal Details"),
-                  buildField(nameController, "Full Name *"),
-                  buildField(phoneController, "Phone Number (ID) *",
-                      keyboardType: TextInputType.phone),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    sectionTitle("Personal Details"),
+                    buildValidatedField(nameController, "Full Name *", validator: FormValidators.validateName),
+                    buildValidatedField(phoneController, "Phone Number (ID) *", keyboardType: TextInputType.phone, validator: FormValidators.validatePhone),
 
-                  sectionTitle("Additional Information"),
-                  buildField(emailController, "Email"),
-                  buildField(adharController, "Aadhar Number",
-                      keyboardType: TextInputType.number),
-                  buildField(panController, "PAN Number"),
-                  buildField(addressController, "Address"),
-                ],
+                    sectionTitle("Additional Information"),
+                    buildValidatedField(emailController, "Email *", keyboardType: TextInputType.emailAddress, validator: FormValidators.validateEmail),
+                    buildValidatedField(adharController, "Aadhar Number *", keyboardType: TextInputType.number, validator: FormValidators.validateAadhar),
+                    buildValidatedField(panController, "PAN Number *", validator: FormValidators.validatePAN),
+                    buildValidatedField(addressController, "Address *", validator: FormValidators.validateAddress),
+                  ],
+                ),
               ),
             ),
 
@@ -193,36 +207,38 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
                       ),
               ),
             ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  // ---------------- COMPONENTS ----------------
-  Widget buildField(
+  // ==================== FORM COMPONENTS ====================
+
+  /// Builds a validated TextFormField with integrated validation
+  Widget buildValidatedField(
     TextEditingController controller,
-    String hint, {
+    String label, {
     TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        validator: validator,
         decoration: InputDecoration(
-          labelText: hint,
+          labelText: label,
           labelStyle: const TextStyle(color: Colors.black54),
           filled: true,
           fillColor: const Color(0xFFecb613).withOpacity(0.08),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide:
-                const BorderSide(color: Color(0xFFecb613), width: 1.7),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFecb613), width: 1.7), borderRadius: BorderRadius.circular(12)),
+          errorBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.red, width: 1.5), borderRadius: BorderRadius.circular(12)),
+          focusedErrorBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.red, width: 1.7), borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );
