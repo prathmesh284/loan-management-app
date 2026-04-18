@@ -5,6 +5,10 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:loan_management_app/Service/GoldPriceService.dart';
 import 'package:loan_management_app/Service/api_service.dart';
+import 'package:loan_management_app/Pages/EMICalculatorPage.dart';
+import 'package:loan_management_app/Pages/AddNewCustomerPage.dart';
+import 'package:loan_management_app/Pages/LoanHistoryPage.dart';
+import 'package:loan_management_app/Pages/CustomersPage.dart';
 
 class DashboardPage extends StatefulWidget {
   final int branchId;
@@ -17,6 +21,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   Map<String, dynamic>? _dashboardStats;
   Map<String, dynamic>? _goldData;
+  String? _branchName;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -28,11 +33,12 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadDashboardData() async {
     try {
-      // Load both gold price and dashboard stats concurrently
+      // Load gold price, dashboard stats, and branch name concurrently
       final goldFuture = _loadGoldPrice();
       final statsFuture = _loadDashboardStats();
+      final branchFuture = _loadBranchName();
 
-      await Future.wait([goldFuture, statsFuture]);
+      await Future.wait([goldFuture, statsFuture, branchFuture]);
 
       if (mounted) {
         setState(() {
@@ -45,6 +51,34 @@ class _DashboardPageState extends State<DashboardPage> {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Error loading dashboard data';
+        });
+      }
+    }
+  }
+
+  Future<void> _loadBranchName() async {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.getRequest('/api/branches/details?branchId=${widget.branchId}');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final branchData = jsonDecode(response.body);
+        setState(() {
+          _branchName = branchData['branchName'] ?? 'Branch';
+        });
+      } else {
+        debugPrint('⚠️ Failed to load branch name: ${response.statusCode}');
+        setState(() {
+          _branchName = 'Branch';
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not load branch name: $e');
+      if (mounted) {
+        setState(() {
+          _branchName = 'Branch';
         });
       }
     }
@@ -168,7 +202,7 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Loan Management",
+              _branchName ?? "Loan Management",
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -259,27 +293,27 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 12),
 
                     // Statistics Row 2
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            "Pending EMIs",
-                            (_dashboardStats?['pendingEmis'] ?? 0).toString(),
-                            Colors.orange,
-                            textDark,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildStatCard(
-                            "Overdue EMIs",
-                            (_dashboardStats?['overdueEmis'] ?? 0).toString(),
-                            Colors.red,
-                            textDark,
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     Expanded(
+                    //       child: _buildStatCard(
+                    //         "Pending EMIs",
+                    //         (_dashboardStats?['pendingEmis'] ?? 0).toString(),
+                    //         Colors.orange,
+                    //         textDark,
+                    //       ),
+                    //     ),
+                    //     const SizedBox(width: 10),
+                    //     Expanded(
+                    //       child: _buildStatCard(
+                    //         "Overdue EMIs",
+                    //         (_dashboardStats?['overdueEmis'] ?? 0).toString(),
+                    //         Colors.red,
+                    //         textDark,
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
                     const SizedBox(height: 20),
 
                     // Quick Links
@@ -304,24 +338,48 @@ class _DashboardPageState extends State<DashboardPage> {
                           "New Loan",
                           primaryColor,
                           textDark,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EmiCalculatorPage(branchId: widget.branchId),
+                            ),
+                          ),
                         ),
                         _quickLink(
                           Icons.person_add,
                           "New Customer",
                           primaryColor,
                           textDark,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddNewCustomerPage(branchId: widget.branchId),
+                            ),
+                          ),
                         ),
                         _quickLink(
                           Icons.receipt_long,
                           "Reports",
                           primaryColor,
                           textDark,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LoanHistoryPage(branchId: widget.branchId),
+                            ),
+                          ),
                         ),
                         _quickLink(
                           Icons.sms,
-                          "Send SMS",
+                          "Customers",
                           primaryColor,
                           textDark,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CustomersPage(branchId: widget.branchId),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -477,7 +535,7 @@ class _DashboardPageState extends State<DashboardPage> {
     Color textColor,
   ) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -500,7 +558,7 @@ class _DashboardPageState extends State<DashboardPage> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -537,41 +595,45 @@ class _DashboardPageState extends State<DashboardPage> {
     String label,
     Color accentColor,
     Color textColor,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.1),
-              shape: BoxShape.circle,
+    {required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
             ),
-            child: Icon(icon, color: accentColor, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: textColor,
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 45,
+              height: 45,
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: accentColor, size: 24),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.manrope(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -19,7 +19,8 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
   final TextEditingController tenureController = TextEditingController();
   final TextEditingController ltvController = TextEditingController();
 
-  String goldType = "Ring";
+  String goldPurity = "22K";  // Gold purity: 22K, 23K, 24K
+  String goldItemType = "Ring";  // Gold item type: Ring, Necklace, etc.
   String priceUnit = "per gram"; // "per gram" or "per kg"
   double loanAmount = 0.0;
   double monthlyEmi = 0.0;
@@ -135,7 +136,8 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
               context,
               MaterialPageRoute(
                 builder: (_) => NewLoanPage(
-                  goldType: goldType,
+                  goldPurity: goldPurity,
+                  goldItemType: goldItemType,
                   weight: weightController.text,
                   goldPrice: goldPriceController.text,
                   ltv: ltvController.text,
@@ -166,8 +168,22 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
             buildSectionCard(
               title: "Gold Details",
               children: [
+                // Gold Purity Selection
                 DropdownButtonFormField<String>(
-                  value: goldType,
+                  value: goldPurity,
+                  decoration: buildDropdownDecoration(primary),
+                  items: const [
+                    DropdownMenuItem(value: "22K", child: Text("22K (91.6% Pure)")),
+                    DropdownMenuItem(value: "23K", child: Text("23K (95.8% Pure)")),
+                    DropdownMenuItem(value: "24K", child: Text("24K (99.9% Pure)")),
+                  ],
+                  onChanged: (val) => setState(() => goldPurity = val!),
+                ),
+                const SizedBox(height: 10),
+                
+                // Gold Item Type Selection
+                DropdownButtonFormField<String>(
+                  value: goldItemType,
                   decoration: buildDropdownDecoration(primary),
                   items: const [
                     DropdownMenuItem(value: "Ring", child: Text("Ring")),
@@ -177,9 +193,10 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                     DropdownMenuItem(value: "Chain", child: Text("Chain")),
                     DropdownMenuItem(value: "Coin", child: Text("Coin")),
                     DropdownMenuItem(value: "Bar", child: Text("Bar")),
+                    DropdownMenuItem(value: "Pendant", child: Text("Pendant")),
                     DropdownMenuItem(value: "Other", child: Text("Other")),
                   ],
-                  onChanged: (val) => setState(() => goldType = val!),
+                  onChanged: (val) => setState(() => goldItemType = val!),
                 ),
                 const SizedBox(height: 10),
                 buildTextField(weightController, "Gold Weight (grams)", type: TextInputType.number),
@@ -282,7 +299,8 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
               buildSectionCard(
                 title: "Loan Summary",
                 children: [
-                  buildResultRow("Gold Type", goldType),
+                  buildResultRow("Gold Item Type", goldItemType),
+                  buildResultRow("Gold Purity", goldPurity),
                   buildResultRow("Eligible Loan Amount", "₹ ${loanAmount.toStringAsFixed(2)}"),
                   buildResultRow("Monthly EMI", "₹ ${monthlyEmi.toStringAsFixed(2)}"),
                   buildResultRow("Total Interest", "₹ ${totalInterest.toStringAsFixed(2)}"),

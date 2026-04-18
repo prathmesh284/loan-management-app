@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 import 'package:loan_management_app/Service/api_service.dart';
 import 'package:loan_management_app/Validators/form_validators.dart';
 
 class NewLoanPage extends StatefulWidget {
-  final String? goldType;
+  final String? goldPurity;  // Purity: 22K, 23K, 24K
+  final String? goldItemType;  // Item type: Ring, Necklace, etc.
   final String? weight;
   final String? goldPrice;
   final String? ltv;
@@ -18,7 +20,8 @@ class NewLoanPage extends StatefulWidget {
 
   const NewLoanPage({
     super.key,
-    this.goldType,
+    this.goldPurity,
+    this.goldItemType,
     this.weight,
     this.goldPrice,
     this.ltv,
@@ -43,12 +46,17 @@ class _NewLoanPageState extends State<NewLoanPage> {
   final TextEditingController dateController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   late final ApiService apiService;
+  bool isLoadingCustomer = false;
+  String? customerError;
 
   @override
   void initState() {
     super.initState();
     apiService = Get.find<ApiService>();
     dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+    
+    // Listen to phone number changes
+    phoneController.addListener(_onPhoneChanged);
   }
 
   @override
@@ -59,6 +67,73 @@ class _NewLoanPageState extends State<NewLoanPage> {
     addressController.dispose();
     dateController.dispose();
     super.dispose();
+  }
+
+  // Fetch customer details when phone number is entered
+  Future<void> _onPhoneChanged() async {
+    final phone = phoneController.text.trim();
+    
+    // Only fetch if phone has 10 digits (valid Indian phone)
+    if (phone.length == 10 && RegExp(r'^[6-9]\d{9}$').hasMatch(phone)) {
+      debugPrint('📱 [CUSTOMER] Fetching customer details for phone: $phone');
+      
+      setState(() {
+        isLoadingCustomer = true;
+        customerError = null;
+      });
+
+      try {
+        final response = await apiService.getRequest('/api/customers/by-id/$phone');
+        
+        if (response.statusCode == 200) {
+          final customerData = jsonDecode(response.body);
+          debugPrint('✅ [CUSTOMER] Customer found: ${customerData['name']}');
+          
+          setState(() {
+            idController.text = customerData['customerId'] ?? '';
+            nameController.text = customerData['name'] ?? '';
+            addressController.text = customerData['address'] ?? '';
+            isLoadingCustomer = false;
+          });
+        } else {
+          debugPrint('⚠️ [CUSTOMER] Customer not found for phone: $phone');
+          setState(() {
+            customerError = 'Customer not found. You can add as new customer.';
+            nameController.clear();
+            idController.clear();
+            addressController.clear();
+            isLoadingCustomer = false;
+          });
+        }
+      } catch (e, stackTrace) {
+        debugPrint('❌ [CUSTOMER] Error fetching customer: $e');
+        debugPrint(stackTrace.toString());
+        
+        setState(() {
+          customerError = 'Error fetching customer details';
+          nameController.clear();
+          idController.clear();
+          addressController.clear();
+          isLoadingCustomer = false;
+        });
+      }
+    } else if (phone.isNotEmpty) {
+      // Clear other fields if phone is invalid
+      setState(() {
+        customerError = null;
+        nameController.clear();
+        idController.clear();
+        addressController.clear();
+      });
+    } else {
+      // Clear all if phone is empty
+      setState(() {
+        customerError = null;
+        nameController.clear();
+        idController.clear();
+        addressController.clear();
+      });
+    }
   }
 
   @override
@@ -95,18 +170,87 @@ class _NewLoanPageState extends State<NewLoanPage> {
             buildSectionCard(
               title: "Customer Information",
               children: [
-                buildTextField(nameController, "Full Name"),
-                const SizedBox(height: 10),
-                buildTextField(idController, "Customer ID"),
-                const SizedBox(height: 10),
+                // Phone Number (Primary field - fetch from here)
                 buildTextField(
                   phoneController,
-                  "Phone Number",
+                  "Phone Number *",
                   type: TextInputType.phone,
                 ),
                 const SizedBox(height: 10),
-                buildTextField(addressController, "Address"),
+                
+                // Loading indicator
+                if (isLoadingCustomer)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Fetching customer details...',
+                          style: TextStyle(color: Colors.blue, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                
+                // Error message
+                if (customerError != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info, color: Colors.orange, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              customerError!,
+                              style: const TextStyle(
+                                color: Colors.orange,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                
+                // Customer Name (auto-filled)
+                buildTextField(
+                  nameController,
+                  "Full Name *",
+                  enabled: phoneController.text.length == 10,
+                ),
                 const SizedBox(height: 10),
+                
+                // Customer ID (auto-filled, readonly)
+                buildTextField(
+                  idController,
+                  "Customer ID",
+                  enabled: false,
+                ),
+                const SizedBox(height: 10),
+                
+                // Address (auto-filled)
+                buildTextField(
+                  addressController,
+                  "Address *",
+                  enabled: phoneController.text.length == 10,
+                ),
+                const SizedBox(height: 10),
+                
                 TextField(
                   controller: dateController,
                   readOnly: true,
@@ -145,7 +289,8 @@ class _NewLoanPageState extends State<NewLoanPage> {
             buildSectionCard(
               title: "Gold & Loan Details",
               children: [
-                buildReadonlyRow("Gold Type", widget.goldType),
+                buildReadonlyRow("Gold Purity", widget.goldPurity),
+                buildReadonlyRow("Gold Item Type", widget.goldItemType),
                 buildReadonlyRow("Gold Weight (g)", widget.weight),
                 buildReadonlyRow("Gold Price (₹/g)", widget.goldPrice),
                 buildReadonlyRow("LTV (%)", widget.ltv),
@@ -153,7 +298,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
                 buildReadonlyRow("Tenure (months)", widget.tenure),
                 buildReadonlyRow(
                   "Eligible Loan (₹)",
-                  widget.loanAmount?.toStringAsFixed(2),
+                  widget.loanAmount?.toStringAsFixed(2)
                 ),
                 buildReadonlyRow(
                   "Monthly EMI (₹)",
@@ -209,34 +354,57 @@ class _NewLoanPageState extends State<NewLoanPage> {
       return;
     }
 
+    // Normalize and validate goldPurity format (must be 22K, 23K, or 24K)
+    final rawGoldPurity = (widget.goldPurity ?? '').trim().toUpperCase();
+    if (!RegExp(r'^(22K|23K|24K)$').hasMatch(rawGoldPurity)) {
+      debugPrint('❌ [LOAN] Invalid gold purity: "$rawGoldPurity" (from: "${widget.goldPurity}")');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Invalid gold purity: \"$rawGoldPurity\". Must be 22K, 23K, or 24K."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final goldItemType = (widget.goldItemType ?? '').trim();
+    if (goldItemType.isEmpty) {
+      debugPrint('❌ [LOAN] Gold item type is required');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Gold item type is required."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final loanData = {
-      "customerName": nameController.text,
-      "customerId": idController.text,
-      "phone": phoneController.text,
-      "address": addressController.text,
-      "loanDate": dateController.text, // ISO format: yyyy-MM-dd
-      "goldType": widget.goldType ?? "N/A",
-      "weight": widget.weight ?? "N/A",
-      "goldPrice": widget.goldPrice ?? "N/A",
-      "ltv": widget.ltv ?? "N/A",
-      "interestRate": widget.interestRate ?? "N/A",
-      "tenure": widget.tenure ?? "N/A",
-      "loanAmount": widget.loanAmount ?? 0,
-      "emi": widget.emi ?? 0,
-      "totalInterest": widget.totalInterest ?? 0,
-      "totalAmount": widget.totalAmount ?? 0,
+      "customerId": idController.text,  // Required: customer ID (phone number)
+      "goldPurity": rawGoldPurity,  // Normalized to uppercase: 22K, 23K, or 24K
+      "goldItemType": goldItemType,  // Item type: Ring, Necklace, etc.
+      "weight": double.tryParse(widget.weight ?? '0') ?? 0.0,
+      "goldPrice": double.tryParse(widget.goldPrice ?? '0') ?? 0.0,
+      "ltv": double.tryParse(widget.ltv ?? '0') ?? 0.0,
+      "interestRate": double.tryParse(widget.interestRate ?? '0') ?? 0.0,
+      "tenure": int.tryParse(widget.tenure ?? '0') ?? 0,
+      "loanAmount": widget.loanAmount ?? 0.0,
+      "emi": widget.emi ?? 0.0,
+      "totalInterest": widget.totalInterest ?? 0.0,
+      "totalAmount": widget.totalAmount ?? 0.0,
     };
 
-    // final response = await http.post(
-    //   Uri.parse("http://localhost:8080/api/loans/add"),
-    //   headers: {"Content-Type": "application/json"},
-    //   body: jsonEncode(loanData),
-    // );
+    debugPrint('📤 [LOAN] Submitting loan data: $loanData');
 
     try {
       final apiService = Get.find<ApiService>();
       final response = await apiService.postRequest("/api/loans/add", loanData);
+      
+      debugPrint('📥 [LOAN] Response status: ${response.statusCode}');
+      debugPrint('📥 [LOAN] Response body: ${response.body}');
+      
       if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('✅ [LOAN] Loan created successfully');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Loan created successfully!"),
@@ -245,16 +413,23 @@ class _NewLoanPageState extends State<NewLoanPage> {
         );
         Navigator.pop(context);
       } else {
+        debugPrint('❌ [LOAN] Failed to create loan: ${response.statusCode}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Failed! ${response.statusCode}"),
+            content: Text("Failed! ${response.statusCode}\n${response.body}"),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e, stackTrace) {
-      print("❌ ERROR: $e");
-      print(stackTrace);
+      debugPrint('❌ [LOAN] Error: $e');
+      debugPrint(stackTrace.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -263,15 +438,19 @@ class _NewLoanPageState extends State<NewLoanPage> {
     TextEditingController controller,
     String hint, {
     TextInputType type = TextInputType.text,
+    bool enabled = true,
   }) {
     const Color primary = Color(0xFFECB613);
     return TextField(
       controller: controller,
       keyboardType: type,
+      enabled: enabled,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: primary.withOpacity(0.2),
+        fillColor: enabled 
+          ? primary.withOpacity(0.2)
+          : Colors.grey.withOpacity(0.1),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
