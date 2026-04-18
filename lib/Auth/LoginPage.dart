@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:loan_management_app/Auth/SignupPage.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -332,7 +334,10 @@ class _LoginPageState extends State<LoginPage> {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
+    debugPrint('🔐 [LOGIN] Starting login attempt for user: $username');
+
     if (username.isEmpty || password.isEmpty) {
+      debugPrint('❌ [LOGIN] Validation failed: username or password empty');
       setState(
         () =>
             _errorMessage =
@@ -347,52 +352,78 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('http://localhost:8080/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+      debugPrint('🔍 [LOGIN] Getting ApiService instance');
+      final apiService = Get.find<ApiService>();
+      
+      debugPrint('📤 [LOGIN] Sending login request for user: $username');
+      // Use public POST request (no token required for login)
+      final response = await apiService.publicPostRequest(
+        '/api/auth/login',
+        {
           'username': username,
           'password': password,
-        }),
+        },
       );
 
+      debugPrint('📥 [LOGIN] Received response with status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['token'] ?? data['data']?['token'] ?? '';
-        branchId = data['branchId'] ?? data['data']?['branchId'] ?? 1;
+        debugPrint('✅ [LOGIN] Response status 200 - Success');
+        try {
+          final data = jsonDecode(response.body);
+          debugPrint('📦 [LOGIN] Decoded response body');
+          final token = data['token'] ?? data['data']?['token'] ?? '';
+          final expiresIn = data['expiresIn'] ?? data['data']?['expiresIn'] ?? 3600;
+          branchId = data['branchId'] ?? data['data']?['branchId'] ?? 1;
 
-        if (token.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('jwt_token', token);
-          await prefs.setInt('branch_id', branchId!);
+          debugPrint('🔑 [LOGIN] Token length: ${token.length} | Expires in: $expiresIn | Branch ID: $branchId');
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('✅ Login successful!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.pushReplacementNamed(
-              context,
-              '/dashboard',
-              arguments: {'branchId': branchId},
-            );
+          if (token.isNotEmpty) {
+            debugPrint('💾 [LOGIN] Storing token and branch data');
+            // Store token with expiry information
+            await apiService.storeTokenData(token, expirySeconds: expiresIn);
+            
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setInt('branch_id', branchId!);
+            debugPrint('✅ [LOGIN] Token and branch data stored successfully');
+
+            if (mounted) {
+              debugPrint('🎯 [LOGIN] Navigating to dashboard');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Login successful!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              Get.offAllNamed('/dashboard', arguments: {'branchId': branchId});
+            }
+          } else {
+            debugPrint('❌ [LOGIN] Token is empty in response');
+            setState(() => _errorMessage = 'Invalid response format.');
           }
-        } else {
-          setState(() => _errorMessage = 'Invalid response format.');
+        } catch (parseError) {
+          debugPrint('❌ [LOGIN] JSON parsing error: $parseError');
+          setState(() => _errorMessage = 'Error parsing login response: $parseError');
         }
+      } else if (response.statusCode == 401) {
+        debugPrint('❌ [LOGIN] Response status 401 - Invalid credentials');
+        setState(() => _errorMessage = 'Invalid username or password.');
       } else {
+        debugPrint('❌ [LOGIN] Response status ${response.statusCode} - Login failed');
+        debugPrint('⚠️ [LOGIN] Response body: ${response.body}');
         setState(
           () =>
               _errorMessage =
-              'Login failed: ${response.statusCode}',
+              'Login failed: ${response.statusCode} - ${response.body}',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [LOGIN] Exception: $e');
+      debugPrint('📍 [LOGIN] Stacktrace: $stackTrace');
       setState(() => _errorMessage = 'Connection error: $e');
     } finally {
       if (mounted) {
+        debugPrint('🔄 [LOGIN] Finalizing - setting isLoading to false');
         setState(() => _isLoading = false);
       }
     }

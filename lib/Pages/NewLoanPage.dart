@@ -42,10 +42,12 @@ class _NewLoanPageState extends State<NewLoanPage> {
   final TextEditingController addressController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  late final ApiService apiService;
 
   @override
   void initState() {
     super.initState();
+    apiService = Get.find<ApiService>();
     dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
 

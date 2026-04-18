@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -37,34 +39,47 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _fetchBranches() async {
+    debugPrint('🏢 [BRANCHES] Starting to fetch branches');
     try {
-      const String apiUrl = "http://localhost:8080/api/branches";
-      // const String apiUrl = "http://10.0.2.2:8080/api/branches"; // For Android emulator
+      debugPrint('🔍 [BRANCHES] Getting ApiService instance');
+      final apiService = Get.find<ApiService>();
       
-      final response = await http.get(
-        Uri.parse(apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 5));
+      debugPrint('📤 [BRANCHES] Sending request to /api/branches');
+      // Use public GET request (no token required)
+      final response = await apiService.publicGetRequest('/api/branches');
+      
+      debugPrint('📥 [BRANCHES] Received response with status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonData = jsonDecode(response.body);
-        setState(() {
-          branches = jsonData
-              .map((branch) => branch['branchName'].toString())
-              .toList();
-          isLoadingBranches = false;
-        });
+        debugPrint('✅ [BRANCHES] Response status 200 - Success');
+        try {
+          final List<dynamic> jsonData = jsonDecode(response.body);
+          debugPrint('📦 [BRANCHES] Decoded ${jsonData.length} branches');
+          setState(() {
+            branches = jsonData
+                .map((branch) => branch['branchName'].toString())
+                .toList();
+            isLoadingBranches = false;
+            debugPrint('✅ [BRANCHES] Branches list updated: $branches');
+          });
+        } catch (parseError) {
+          debugPrint('❌ [BRANCHES] JSON parsing error: $parseError');
+          setState(() {
+            branchError = 'Error parsing branches: $parseError';
+            isLoadingBranches = false;
+          });
+        }
       } else {
+        debugPrint('❌ [BRANCHES] Response status ${response.statusCode} - Failed to load branches');
+        debugPrint('⚠️ [BRANCHES] Response body: ${response.body}');
         setState(() {
-          branchError = 'Failed to load branches';
+          branchError = 'Failed to load branches (Status: ${response.statusCode})';
           isLoadingBranches = false;
         });
       }
-    } catch (e) {
-      print('❌ Error fetching branches: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [BRANCHES] Error fetching branches: $e');
+      debugPrint('📍 [BRANCHES] Stacktrace: $stackTrace');
       setState(() {
         branchError = 'Error loading branches: $e';
         isLoadingBranches = false;
@@ -550,9 +565,6 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _registerUser(BuildContext context) async {
-    const String apiUrl = "http://localhost:8080/api/auth/signup";
-    // const String apiUrl = "http://10.0.2.2:8080/api/auth/signup";
-
     final Map<String, dynamic> userData = {
       "username": _usernameController.text.trim(),
       "email": _emailController.text.trim(),
@@ -564,6 +576,9 @@ class _SignUpPageState extends State<SignUpPage> {
       "branch": shopName,
     };
 
+    debugPrint('👤 [SIGNUP] Starting signup with username: ${userData["username"]}');
+    debugPrint('📦 [SIGNUP] User data: $userData');
+
     try {
       showDialog(
         context: context,
@@ -573,61 +588,91 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       );
 
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(userData),
+      debugPrint('🔍 [SIGNUP] Getting ApiService instance');
+      // Use public POST request (no token required for signup)
+      final apiService = Get.find<ApiService>();
+      
+      debugPrint('📤 [SIGNUP] Sending signup request');
+      final response = await apiService.publicPostRequest(
+        '/api/auth/signup',
+        userData,
       );
 
-      if (!mounted) return;
+      debugPrint('📥 [SIGNUP] Received response with status: ${response.statusCode}');
+
+      if (!mounted) {
+        debugPrint('⚠️ [SIGNUP] Widget unmounted, closing dialog');
+        return;
+      }
       Navigator.pop(context); // close loader
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ Signup successful: ${response.body}');
+        debugPrint('✅ [SIGNUP] Signup successful! Status: ${response.statusCode}');
+        debugPrint('📦 [SIGNUP] Response: ${response.body}');
         
-        // Save user ID to SharedPreferences for dashboard
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        final int userId = responseData['id'] ?? 0;
-        final int branchId = responseData['branch']?['id'] ?? 1;
-        
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('user_id', userId);
-        await prefs.setInt('branch_id', branchId);
-        await prefs.setString('username', _usernameController.text.trim());
-        
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("✅ Account created successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        // Navigate to dashboard
-        Navigator.pushReplacementNamed(
-          context,
-          '/dashboard',
-          arguments: {'branchId': branchId},
-        );
+        try {
+          // Save user ID to SharedPreferences for dashboard
+          final Map<String, dynamic> responseData = jsonDecode(response.body);
+          final int userId = responseData['id'] ?? 0;
+          final int branchId = responseData['branch']?['id'] ?? 1;
+          
+          debugPrint('💾 [SIGNUP] Storing user data - userId: $userId, branchId: $branchId');
+          
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('user_id', userId);
+          await prefs.setInt('branch_id', branchId);
+          await prefs.setString('username', _usernameController.text.trim());
+          
+          debugPrint('✅ [SIGNUP] User data stored successfully');
+          
+          if (!mounted) {
+            debugPrint('⚠️ [SIGNUP] Widget unmounted, cannot show success message');
+            return;
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("✅ Account created successfully!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          debugPrint('🎯 [SIGNUP] Navigating to dashboard with branchId: $branchId');
+          // Navigate to dashboard
+          Get.offAllNamed('/dashboard', arguments: {'branchId': branchId});
+        } catch (parseError) {
+          debugPrint('❌ [SIGNUP] Error parsing signup response: $parseError');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("⚠️ Signup completed but error parsing response: $parseError"),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
       } else {
-        print('❌ Signup failed: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        debugPrint('❌ [SIGNUP] Signup failed! Status: ${response.statusCode}');
+        debugPrint('⚠️ [SIGNUP] Response body: ${response.body}');
         
-        if (!mounted) return;
+        if (!mounted) {
+          debugPrint('⚠️ [SIGNUP] Widget unmounted, cannot show error message');
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("⚠️ Signup failed: ${response.body}"),
+            content: Text("⚠️ Signup failed: ${response.statusCode} - ${response.body}"),
             backgroundColor: Colors.redAccent,
           ),
         );
       }
-    } catch (e) {
-      print('⚠️ Error occurred: $e');
-      if (!mounted) return;
+    } catch (e, stackTrace) {
+      debugPrint('❌ [SIGNUP] Exception occurred: $e');
+      debugPrint('📍 [SIGNUP] Stacktrace: $stackTrace');
+      if (!mounted) {
+        debugPrint('⚠️ [SIGNUP] Widget unmounted, skipping error handling');
+        return;
+      }
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

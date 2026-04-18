@@ -1,6 +1,7 @@
 /// Form Validators Utility
 /// Centralized validation logic for all form fields in the application
 /// Ensures consistency between frontend and backend validation
+library;
 
 class FormValidators {
   // ==================== PHONE VALIDATION ====================

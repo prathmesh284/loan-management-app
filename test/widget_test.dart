@@ -5,14 +5,27 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loan_management_app/main.dart';
+import 'package:loan_management_app/Service/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(GoldLoanApp());
+    WidgetsFlutterBinding.ensureInitialized();
+    await Get.putAsync(() async => ApiService());
+    
+    // Check if user is authenticated
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("jwt_token");
+    final branchId = prefs.getInt("branch_id") ?? 1;
+    await tester.pumpWidget(GoldLoanApp(
+      isLoggedIn: token != null && token.isNotEmpty,
+      branchId: branchId,
+    ));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

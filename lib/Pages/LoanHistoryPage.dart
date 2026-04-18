@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:loan_management_app/Service/api_service.dart';
 
 class LoanHistoryPage extends StatefulWidget {
   final int branchId;
@@ -25,17 +26,12 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
 
   Future<void> _fetchLoanHistory() async {
     try {
+      final apiService = Get.find<ApiService>();
       // Fetch recent loans
-      final recentResponse = await http.get(
-        Uri.parse('http://localhost:8080/api/dashboard/recent-loans/${widget.branchId}'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
+      final recentResponse = await apiService.getRequest('/api/dashboard/recent-loans/${widget.branchId}');
 
       // Fetch loans due soon
-      final dueResponse = await http.get(
-        Uri.parse('http://localhost:8080/api/dashboard/loans-due-soon/${widget.branchId}'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
+      final dueResponse = await apiService.getRequest('/api/dashboard/loans-due-soon/${widget.branchId}');
 
       if (recentResponse.statusCode == 200 && dueResponse.statusCode == 200) {
         setState(() {
