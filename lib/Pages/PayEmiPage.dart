@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:loan_management_app/Service/api_service.dart';
 import 'package:loan_management_app/Validators/form_validators.dart';
 
@@ -567,10 +568,19 @@ class _PayEmiPageState extends State<PayEmiPage> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: gold),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                // In production, open payment link URL
-                // launchUrl(Uri.parse(paymentLink));
+                final uri = Uri.tryParse(paymentLink);
+                if (uri == null ||
+                    !await launchUrl(
+                      uri,
+                      mode: LaunchMode.externalApplication,
+                    )) {
+                  showErrorDialog(
+                    "Payment Link Error",
+                    "Could not open payment link.",
+                  );
+                }
               },
               child: const Text(
                 "Open Payment",
