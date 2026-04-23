@@ -41,41 +41,43 @@ class _NewLoanPageState extends State<NewLoanPage> {
   // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController idController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   late final ApiService apiService;
   bool isLoadingCustomer = false;
   String? customerError;
+  bool _isPopulatingCustomer = false;
 
   @override
   void initState() {
     super.initState();
     apiService = Get.find<ApiService>();
     dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
-    
-    // Listen to phone number changes
-    phoneController.addListener(_onPhoneChanged);
+
+    // Customer ID is the phone number in this app, so fetch from this field.
+    idController.addListener(_onCustomerIdChanged);
   }
 
   @override
   void dispose() {
     nameController.dispose();
     idController.dispose();
-    phoneController.dispose();
     addressController.dispose();
     dateController.dispose();
     super.dispose();
   }
 
-  // Fetch customer details when phone number is entered
-  Future<void> _onPhoneChanged() async {
-    final phone = phoneController.text.trim();
-    
-    // Only fetch if phone has 10 digits (valid Indian phone)
-    if (phone.length == 10 && RegExp(r'^[6-9]\d{9}$').hasMatch(phone)) {
-      debugPrint('📱 [CUSTOMER] Fetching customer details for phone: $phone');
+  // Fetch customer details when customer ID is entered.
+  Future<void> _onCustomerIdChanged() async {
+    if (_isPopulatingCustomer) {
+      return;
+    }
+
+    final customerId = idController.text.trim();
+
+    if (customerId.length == 10 && RegExp(r'^[6-9]\d{9}$').hasMatch(customerId)) {
+      debugPrint('📱 [CUSTOMER] Fetching customer details for customerId: $customerId');
       
       setState(() {
         isLoadingCustomer = true;
@@ -83,24 +85,25 @@ class _NewLoanPageState extends State<NewLoanPage> {
       });
 
       try {
-        final response = await apiService.getRequest('/api/customers/by-id/$phone');
+        final response = await apiService.getRequest('/api/customers/by-id/$customerId');
         
         if (response.statusCode == 200) {
           final customerData = jsonDecode(response.body);
           debugPrint('✅ [CUSTOMER] Customer found: ${customerData['name']}');
-          
+
+          _isPopulatingCustomer = true;
           setState(() {
             idController.text = customerData['customerId'] ?? '';
             nameController.text = customerData['name'] ?? '';
             addressController.text = customerData['address'] ?? '';
             isLoadingCustomer = false;
           });
+          _isPopulatingCustomer = false;
         } else {
-          debugPrint('⚠️ [CUSTOMER] Customer not found for phone: $phone');
+          debugPrint('⚠️ [CUSTOMER] Customer not found for customerId: $customerId');
           setState(() {
-            customerError = 'Customer not found. You can add as new customer.';
+            customerError = 'Customer not found for this Customer ID.';
             nameController.clear();
-            idController.clear();
             addressController.clear();
             isLoadingCustomer = false;
           });
@@ -112,28 +115,27 @@ class _NewLoanPageState extends State<NewLoanPage> {
         setState(() {
           customerError = 'Error fetching customer details';
           nameController.clear();
-          idController.clear();
           addressController.clear();
           isLoadingCustomer = false;
         });
       }
-    } else if (phone.isNotEmpty) {
-      // Clear other fields if phone is invalid
+    } else if (customerId.isNotEmpty) {
       setState(() {
         customerError = null;
         nameController.clear();
-        idController.clear();
         addressController.clear();
       });
     } else {
-      // Clear all if phone is empty
       setState(() {
         customerError = null;
         nameController.clear();
-        idController.clear();
         addressController.clear();
       });
     }
+  }
+
+  Future<void> _fetchCustomerById() async {
+    await _onCustomerIdChanged();
   }
 
   @override
@@ -170,33 +172,28 @@ class _NewLoanPageState extends State<NewLoanPage> {
             buildSectionCard(
               title: "Customer Information",
               children: [
-                // Phone Number (Primary field - fetch from here)
+                // Customer ID / Phone Number (Primary field)
                 buildTextField(
-                  phoneController,
-                  "Phone Number *",
+                  idController,
+                  "Customer ID *",
                   type: TextInputType.phone,
+                  onSubmitted: (_) => _fetchCustomerById(),
+                  suffixIcon: isLoadingCustomer
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: _fetchCustomerById,
+                          icon: const Icon(Icons.search),
+                          tooltip: "Fetch customer",
+                        ),
                 ),
                 const SizedBox(height: 10),
-                
-                // Loading indicator
-                if (isLoadingCustomer)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Fetching customer details...',
-                          style: TextStyle(color: Colors.blue, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
                 
                 // Error message
                 if (customerError != null)
@@ -214,7 +211,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
                           const Icon(Icons.info, color: Colors.orange, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
+                          child: Text(
                               customerError!,
                               style: const TextStyle(
                                 color: Colors.orange,
@@ -231,23 +228,14 @@ class _NewLoanPageState extends State<NewLoanPage> {
                 buildTextField(
                   nameController,
                   "Full Name *",
-                  enabled: phoneController.text.length == 10,
-                ),
-                const SizedBox(height: 10),
-                
-                // Customer ID (auto-filled, readonly)
-                buildTextField(
-                  idController,
-                  "Customer ID",
                   enabled: false,
                 ),
                 const SizedBox(height: 10),
-                
-                // Address (auto-filled)
+
                 buildTextField(
                   addressController,
                   "Address *",
-                  enabled: phoneController.text.length == 10,
+                  enabled: false,
                 ),
                 const SizedBox(height: 10),
                 
@@ -343,7 +331,6 @@ class _NewLoanPageState extends State<NewLoanPage> {
   void submitLoan() async {
     if (nameController.text.isEmpty ||
         idController.text.isEmpty ||
-        phoneController.text.isEmpty ||
         addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -380,9 +367,14 @@ class _NewLoanPageState extends State<NewLoanPage> {
     }
 
     final loanData = {
-      "customerId": idController.text,  // Required: customer ID (phone number)
-      "goldPurity": rawGoldPurity,  // Normalized to uppercase: 22K, 23K, or 24K
-      "goldItemType": goldItemType,  // Item type: Ring, Necklace, etc.
+      "customerId": idController.text.trim(),
+      "customerName": nameController.text.trim(),
+      "address": addressController.text.trim(),
+      "loanDate": dateController.text.trim(),
+      "goldPurity": rawGoldPurity,
+      "purity": rawGoldPurity,
+      "goldItemType": goldItemType,
+      "goldType": goldItemType,
       "weight": double.tryParse(widget.weight ?? '0') ?? 0.0,
       "goldPrice": double.tryParse(widget.goldPrice ?? '0') ?? 0.0,
       "ltv": double.tryParse(widget.ltv ?? '0') ?? 0.0,
@@ -439,12 +431,15 @@ class _NewLoanPageState extends State<NewLoanPage> {
     String hint, {
     TextInputType type = TextInputType.text,
     bool enabled = true,
+    Widget? suffixIcon,
+    void Function(String)? onSubmitted,
   }) {
     const Color primary = Color(0xFFECB613);
     return TextField(
       controller: controller,
       keyboardType: type,
       enabled: enabled,
+      onSubmitted: onSubmitted,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -459,6 +454,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
           horizontal: 16,
           vertical: 14,
         ),
+        suffixIcon: suffixIcon,
       ),
     );
   }
