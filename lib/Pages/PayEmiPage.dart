@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loan_management_app/Service/api_service.dart';
@@ -5,14 +6,16 @@ import 'package:loan_management_app/Validators/form_validators.dart';
 
 class PayEmiPage extends StatefulWidget {
   final String loanId;
+  final String customerId; // Added for receipt generation
   final double totalLoanAmount;
   final int totalEmis;
   final int paidEmis;
   final String? nextEmiDate;
-
+  
   const PayEmiPage({
     super.key,
     required this.loanId,
+    required this.customerId,
     required this.totalLoanAmount,
     required this.totalEmis,
     required this.paidEmis,
@@ -24,25 +27,69 @@ class PayEmiPage extends StatefulWidget {
 }
 
 class _PayEmiPageState extends State<PayEmiPage> {
-  String selectedMethod = "cash";
-  final TextEditingController upiController = TextEditingController();
+  String selectedMethod = "CASH";
+  String selectedMode = "MANUAL";
+  String selectedUpiApp = "GOOGLE_PAY"; // Default UPI app
+  final TextEditingController upiIdController = TextEditingController();
   final TextEditingController cashReferenceController = TextEditingController();
+  final TextEditingController remarksController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
+  late String generatedReceiptId; // Auto-generated receipt ID
 
-  // 💰 CALCULATE EMI AMOUNT (Annual payment = Total Loan / Number of EMIs)
+  // 🎯 UPI Apps with icons
+  final Map<String, Map<String, dynamic>> upiApps = {
+    "GOOGLE_PAY": {
+      "label": "Google Pay",
+      "icon": Icons.payment,
+      "color": Color(0xFF4285F4),
+      "hint": "9876543210@googleplay"
+    },
+    "PHONEPE": {
+      "label": "PhonePe",
+      "icon": Icons.mobile_friendly,
+      "color": Color(0xFF5B22D5),
+      "hint": "9876543210@ybl"
+    },
+    "PAYTM": {
+      "label": "Paytm",
+      "icon": Icons.account_balance_wallet,
+      "color": Color(0xFF002970),
+      "hint": "9876543210@paytm"
+    },
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    generatedReceiptId = generateReceiptId(); // Generate on page load
+  }
+
+  // 🎯 GENERATE RECEIPT ID
+  String generateReceiptId() {
+    // Format: RECIPT-YYYYMM_CUSTOMERID_LASTNUM_NO
+    DateTime now = DateTime.now();
+    String yearMonth = '${now.year}${now.month.toString().padLeft(2, '0')}';
+    
+    // Extract last digit of customer ID
+    String lastDigit = widget.customerId.isNotEmpty 
+        ? widget.customerId.substring(widget.customerId.length - 1) 
+        : '0';
+    
+    // Sequential number (in real app, get from backend)
+    String sequentialNo = '${widget.paidEmis + 1}'.padLeft(3, '0');
+    
+    return 'RECIPT-$yearMonth\_${widget.customerId}\_$lastDigit\_$sequentialNo';
+  }
+
+  // 💰 CALCULATE EMI AMOUNT
   double get emiAmount {
     if (widget.totalEmis <= 0) return 0;
     return widget.totalLoanAmount / widget.totalEmis;
   }
 
-  double get payableAmount {
-    return emiAmount;
-  }
-
-  double get totalAmount {
-    return emiAmount;
-  }
+  double get payableAmount => emiAmount;
+  double get totalAmount => emiAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +103,10 @@ class _PayEmiPageState extends State<PayEmiPage> {
           "Pay EMI",
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: bg,
+        backgroundColor: gold,
         elevation: 0.3,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
@@ -70,6 +116,53 @@ class _PayEmiPageState extends State<PayEmiPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ---------- GENERATED RECEIPT ID ----------
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: gold.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: gold, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.receipt_long, color: gold, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Receipt ID (Auto-Generated)",
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              Text(
+                                generatedReceiptId,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy, size: 18),
+                          onPressed: () {
+                            // Copy to clipboard
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Receipt ID copied!")),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
                   // ---------- EMI SUMMARY ----------
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -85,15 +178,25 @@ class _PayEmiPageState extends State<PayEmiPage> {
                         ),
                         const SizedBox(height: 8),
                         rowItem(
-                          "EMI Amount",
+                          "Total Months (EMIs)",
+                          "${widget.totalEmis}",
+                        ),
+                        const SizedBox(height: 8),
+                        rowItem(
+                          "Monthly EMI Amount",
                           "₹${emiAmount.toStringAsFixed(2)}",
                         ),
                         const SizedBox(height: 8),
                         const Divider(),
                         const SizedBox(height: 8),
                         rowItem(
-                          "Total Payable",
+                          "Current Payable",
                           "₹${payableAmount.toStringAsFixed(2)}",
+                        ),
+                        const SizedBox(height: 8),
+                        rowItem(
+                          "EMI Status",
+                          "${widget.paidEmis}/${widget.totalEmis} Paid",
                         ),
                         const SizedBox(height: 8),
                         rowItem(
@@ -120,28 +223,54 @@ class _PayEmiPageState extends State<PayEmiPage> {
                   // ---------- CASH ----------
                   paymentOption(
                     title: "Cash Payment",
-                    selected: selectedMethod == "cash",
+                    subtitle: "Pay in cash at branch",
+                    selected: selectedMethod == "CASH",
                     icon: Icons.attach_money_rounded,
-                    onTap: () => setState(() => selectedMethod = "cash"),
+                    onTap: () => setState(() {
+                      selectedMethod = "CASH";
+                      selectedMode = "MANUAL";
+                    }),
                   ),
 
                   const SizedBox(height: 14),
 
-                  // ---------- UPI ----------
+                  // ---------- UPI PAYMENT ----------
                   paymentOption(
                     title: "UPI Payment",
-                    selected: selectedMethod == "upi",
+                    subtitle: "Google Pay, PhonePe, Paytm",
+                    selected: selectedMethod == "UPI",
                     icon: Icons.account_balance_wallet_rounded,
-                    onTap: () => setState(() => selectedMethod = "upi"),
+                    onTap: () => setState(() {
+                      selectedMethod = "UPI";
+                      selectedMode = "RAZORPAY";
+                    }),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // ---------- ONLINE TRANSFER ----------
+                  paymentOption(
+                    title: "Online Transfer",
+                    subtitle: "Bank transfer/Card payment",
+                    selected: selectedMethod == "ONLINE_TRANSFER",
+                    icon: Icons.credit_card_rounded,
+                    onTap: () => setState(() {
+                      selectedMethod = "ONLINE_TRANSFER";
+                      selectedMode = "RAZORPAY";
+                    }),
                   ),
 
                   const SizedBox(height: 20),
 
                   // ---------- CASH PAYMENT SECTION ----------
-                  if (selectedMethod == "cash") cashPaymentSection(),
+                  if (selectedMethod == "CASH") cashPaymentSection(),
 
-                  // ---------- UPI INPUT ----------
-                  if (selectedMethod == "upi") upiSection(),
+                  // ---------- UPI PAYMENT SECTION ----------
+                  if (selectedMethod == "UPI") upiPaymentSection(),
+
+                  // ---------- ONLINE TRANSFER SECTION ----------
+                  if (selectedMethod == "ONLINE_TRANSFER")
+                    onlinePaymentSection(),
 
                   const SizedBox(height: 30),
 
@@ -160,9 +289,11 @@ class _PayEmiPageState extends State<PayEmiPage> {
                       ),
                       child: isLoading
                           ? const CircularProgressIndicator(color: Colors.black)
-                          : const Text(
-                              "Pay Now",
-                              style: TextStyle(
+                          : Text(
+                              selectedMode == "RAZORPAY"
+                                  ? "Create Payment Link"
+                                  : "Confirm Payment",
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -180,40 +311,39 @@ class _PayEmiPageState extends State<PayEmiPage> {
     );
   }
 
-  // ---------------- HANDLER ----------------
+  // ============= PAYMENT HANDLER =============
   void handlePayment() async {
-    if (selectedMethod == "upi" && upiController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid UPI ID"),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (selectedMethod == "cash" && cashReferenceController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a reference number or receipt number"),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // 🔥 SHOW CONFIRMATION DIALOG FOR CASH
-    if (selectedMethod == "cash") {
+    if (selectedMethod == "CASH") {
+      if (cashReferenceController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please enter reference/receipt number"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       showCashPaymentConfirmation();
+    } else if (selectedMethod == "UPI") {
+      if (upiIdController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please enter your UPI ID"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      processOnlinePayment();
     } else {
-      processPayment();
+      processOnlinePayment();
     }
   }
 
-  // 🎯 CASH PAYMENT CONFIRMATION DIALOG
+  // 🎯 CASH PAYMENT CONFIRMATION
   void showCashPaymentConfirmation() {
     const Color gold = Color(0xFFecb613);
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -232,6 +362,17 @@ class _PayEmiPageState extends State<PayEmiPage> {
                   Text(
                     "₹${payableAmount.toStringAsFixed(2)}",
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Receipt ID:"),
+                  Text(
+                    generatedReceiptId,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, fontFamily: 'monospace'),
                   ),
                 ],
               ),
@@ -275,7 +416,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
               style: ElevatedButton.styleFrom(backgroundColor: gold),
               onPressed: () {
                 Navigator.pop(context);
-                processPayment();
+                processCashPayment();
               },
               child: const Text(
                 "Confirm Payment",
@@ -288,54 +429,199 @@ class _PayEmiPageState extends State<PayEmiPage> {
     );
   }
 
-  // 💳 PROCESS PAYMENT
-  void processPayment() async {
+  // 💵 PROCESS CASH PAYMENT
+  void processCashPayment() async {
     setState(() => isLoading = true);
 
     try {
       final apiService = Get.find<ApiService>();
 
       final body = {
-        "loanId": widget.loanId,
-        "amountPaid": emiAmount,
-        "paymentMethod": selectedMethod,
+        "loanId": int.parse(widget.loanId),
+        "amount": payableAmount,
+        "paymentMethod": "CASH",
+        "paymentMode": "MANUAL",
+        "remarks": remarksController.text,
+        "receiptNumber": generatedReceiptId, // Include generated receipt ID
+        "generateReceipt": true,
       };
 
       final response = await apiService.postRequest(
-        "/api/emis/pay",
+        "/api/emis/process-payment",
         body,
       );
 
-      print("📡 EMI STATUS: ${response.statusCode}");
-      print("📦 EMI BODY: ${response.body}");
+      print("📡 CASH PAYMENT STATUS: ${response.statusCode}");
+      print("📦 CASH PAYMENT BODY: ${response.body}");
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("✅ Payment Successful"),
-            backgroundColor: Colors.green,
-          ),
+        var jsonResponse = jsonDecode(response.body);
+
+        showSuccessDialog(
+          "Payment Successful!",
+          "Receipt: ${jsonResponse['receiptNumber'] ?? generatedReceiptId}\n\nAmount Paid: ₹${payableAmount.toStringAsFixed(2)}",
         );
 
-        Navigator.pop(context, {"success": true, "loanId": widget.loanId});
+        Navigator.pop(context, {
+          "success": true,
+          "loanId": widget.loanId,
+          "receiptNumber": jsonResponse['receiptNumber'] ?? generatedReceiptId,
+          "emiId": jsonResponse['emiId'],
+          "amountPaid": jsonResponse['amountPaid'],
+        });
       } else {
-        throw Exception("Payment failed");
+        final errorBody = jsonDecode(response.body);
+        throw Exception(errorBody['message'] ?? "Payment processing failed");
       }
     } catch (e) {
-      print("❌ ERROR: $e");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("❌ Payment Failed"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      print("❌ CASH PAYMENT ERROR: $e");
+      showErrorDialog("Payment Failed", e.toString());
     }
 
     setState(() => isLoading = false);
   }
 
-  // ---------------- REUSABLE WIDGETS ----------------
+  // 💳 PROCESS ONLINE PAYMENT (Razorpay)
+  void processOnlinePayment() async {
+    setState(() => isLoading = true);
+
+    try {
+      final apiService = Get.find<ApiService>();
+
+      final initiateBody = {
+        "loanId": int.parse(widget.loanId),
+        "amount": payableAmount,
+        "customerId": widget.customerId,
+        "gateway": "razorpay",
+        "paymentMethod": selectedMethod,
+        "upiApp": selectedUpiApp,
+        "upiId": selectedMethod == "UPI" ? upiIdController.text : null,
+        "receiptNumber": generatedReceiptId,
+      };
+
+      final initiateResponse = await apiService.postRequest(
+        "/api/payments/initiate",
+        initiateBody,
+      );
+
+      print("📡 RAZORPAY INITIATE STATUS: ${initiateResponse.statusCode}");
+      print("📦 RAZORPAY INITIATE BODY: ${initiateResponse.body}");
+
+      if (initiateResponse.statusCode == 200) {
+        var responseData = jsonDecode(initiateResponse.body);
+        showPaymentLinkDialog(responseData['paymentLink'] ?? "");
+      } else {
+        throw Exception("Failed to create payment link");
+      }
+    } catch (e) {
+      print("❌ RAZORPAY ERROR: $e");
+      showErrorDialog("Payment Initiation Failed", e.toString());
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  // 📱 SHOW PAYMENT LINK DIALOG
+  void showPaymentLinkDialog(String paymentLink) {
+    const Color gold = Color(0xFFecb613);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Complete Payment"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Payment link has been created. Complete payment using your selected method.",
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: gold.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      "Amount: ₹${payableAmount.toStringAsFixed(2)}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Receipt ID: $generatedReceiptId",
+                      style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: gold),
+              onPressed: () {
+                Navigator.pop(context);
+                // In production, open payment link URL
+                // launchUrl(Uri.parse(paymentLink));
+              },
+              child: const Text(
+                "Open Payment",
+                style: TextStyle(color: Colors.black87),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ✅ SUCCESS DIALOG
+  void showSuccessDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ❌ ERROR DIALOG
+  void showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============= UI WIDGETS =============
 
   Widget rowItem(String label, String value) {
     return Row(
@@ -359,6 +645,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
   Widget paymentOption({
     required String title,
+    required String subtitle,
     required bool selected,
     required IconData icon,
     required VoidCallback onTap,
@@ -391,51 +678,28 @@ class _PayEmiPageState extends State<PayEmiPage> {
           children: [
             Icon(icon, color: gold, size: 26),
             const SizedBox(width: 14),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
             Icon(
-              selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
+              selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
               color: selected ? gold : Colors.grey,
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget upiSection() {
-    const Color gold = Color(0xFFecb613);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Enter UPI ID",
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: upiController,
-          decoration: InputDecoration(
-            hintText: "example@upi",
-            filled: true,
-            fillColor: gold.withOpacity(0.12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -446,7 +710,6 @@ class _PayEmiPageState extends State<PayEmiPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 💵 CASH DETAILS
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -472,7 +735,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                           ),
                         ),
                         Text(
-                          "Please settle the amount in cash",
+                          "Receipt will be auto-generated",
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
@@ -498,19 +761,16 @@ class _PayEmiPageState extends State<PayEmiPage> {
             ],
           ),
         ),
-
         const SizedBox(height: 16),
-
-        // 📝 REFERENCE NUMBER INPUT
         const Text(
-          "Receipt / Reference Number",
+          "Reference Number (Optional)",
           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: cashReferenceController,
           decoration: InputDecoration(
-            hintText: "Enter receipt or reference number",
+            hintText: "Bank receipt or transaction reference",
             prefixIcon: const Icon(Icons.receipt, color: gold),
             filled: true,
             fillColor: gold.withOpacity(0.08),
@@ -518,10 +778,248 @@ class _PayEmiPageState extends State<PayEmiPage> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          "Remarks (Optional)",
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: remarksController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: "Additional notes about payment",
+            prefixIcon: const Icon(Icons.note, color: gold),
+            filled: true,
+            fillColor: gold.withOpacity(0.08),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 📱 UPI PAYMENT SECTION
+  Widget upiPaymentSection() {
+    const Color gold = Color(0xFFecb613);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 🏦 UPI APP SELECTION
+        const Text(
+          "Select UPI App",
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Column(
+          children: upiApps.entries.map((entry) {
+            String key = entry.key;
+            Map<String, dynamic> app = entry.value;
+            bool isSelected = selectedUpiApp == key;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: isSelected ? gold : Colors.grey.shade300,
+                  width: isSelected ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                color: isSelected ? gold.withOpacity(0.1) : Colors.white,
+              ),
+              child: ListTile(
+                leading: Icon(
+                  app['icon'],
+                  color: app['color'],
+                  size: 28,
+                ),
+                title: Text(
+                  app['label'],
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                trailing: Radio(
+                  value: key,
+                  groupValue: selectedUpiApp,
+                  onChanged: (value) {
+                    setState(() => selectedUpiApp = value.toString());
+                  },
+                  activeColor: gold,
+                ),
+                onTap: () {
+                  setState(() => selectedUpiApp = key);
+                },
+              ),
+            );
+          }).toList(),
+        ),
+
+        const SizedBox(height: 20),
+
+        // 📝 UPI ID INPUT
+        const Text(
+          "Enter Your UPI ID",
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: upiIdController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            hintText: upiApps[selectedUpiApp]?['hint'] ?? "your.name@upi",
+            prefixIcon: Icon(upiApps[selectedUpiApp]?['icon'], color: gold),
+            filled: true,
+            fillColor: gold.withOpacity(0.08),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ℹ️ UPI INFO
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.blue.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info, color: Colors.blue.shade600, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Your UPI ID will be used to receive payment via ${upiApps[selectedUpiApp]?['label']}",
+                  style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // 💰 AMOUNT DISPLAY
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Total Amount to Pay:",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                "₹${payableAmount.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Color(0xFFecb613),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 💳 ONLINE TRANSFER SECTION
+  Widget onlinePaymentSection() {
+    const Color gold = Color(0xFFecb613);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: gold.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: gold, width: 0.5),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.lock, color: gold, size: 24),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Secure Payment",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      "Powered by Razorpay - PCI-DSS Compliant",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Total Amount:",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                "₹${payableAmount.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Color(0xFFecb613),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.green.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green.shade600, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Accept all major cards, net banking, and wallets",
+                  style: TextStyle(fontSize: 12, color: Colors.green.shade600),
+                ),
+              ),
+            ],
           ),
         ),
       ],

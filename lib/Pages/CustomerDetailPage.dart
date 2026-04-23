@@ -344,6 +344,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 MaterialPageRoute(
                   builder: (context) => PayEmiPage(
                     loanId: activeLoan?['id']?.toString() ?? "",
+                    customerId: widget.customerId,
                     totalLoanAmount: toDouble(activeLoan?['totalAmount']),
                     totalEmis: toDouble(activeLoan?['totalEmis']).toInt(),
                     paidEmis: toDouble(activeLoan?['paidEmis']).toInt(),

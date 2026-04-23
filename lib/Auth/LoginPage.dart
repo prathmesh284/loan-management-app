@@ -408,6 +408,13 @@ class _LoginPageState extends State<LoginPage> {
       } else if (response.statusCode == 401) {
         debugPrint('❌ [LOGIN] Response status 401 - Invalid credentials');
         setState(() => _errorMessage = 'Invalid username or password.');
+      } else if (response.statusCode == 503 &&
+          response.body.contains('Failed to fetch')) {
+        debugPrint('❌ [LOGIN] Browser/network access issue while calling login API');
+        setState(
+          () => _errorMessage =
+              'Unable to reach the login API from Chrome. This is usually a CORS or API Gateway/network issue, not invalid credentials.',
+        );
       } else {
         debugPrint('❌ [LOGIN] Response status ${response.statusCode} - Login failed');
         debugPrint('⚠️ [LOGIN] Response body: ${response.body}');

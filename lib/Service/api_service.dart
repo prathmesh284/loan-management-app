@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService extends GetxService {
@@ -17,6 +19,23 @@ class ApiService extends GetxService {
   void onInit() {
     super.onInit();
     debugPrint('🚀 [API-SERVICE] ApiService initialized with baseUrl: $baseUrl');
+  }
+
+  http.Response _buildNetworkErrorResponse(
+    String scope,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    debugPrint('❌ [$scope] Exception: $error');
+    debugPrint('📍 [$scope] Stacktrace: $stackTrace');
+
+    final errorText = error.toString();
+    final isBrowserFetchFailure = kIsWeb && errorText.contains('Failed to fetch');
+    final message = isBrowserFetchFailure
+        ? 'Network error: Failed to fetch. This usually means the browser blocked the request, the API is unreachable, or API Gateway CORS is not configured for this origin.'
+        : 'Network error: $errorText';
+
+    return http.Response(message, 503);
   }
 
   Future<String?> _getToken() async {
@@ -88,10 +107,13 @@ class ApiService extends GetxService {
       _handleTokenExpiry(response.statusCode);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [GET] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('GET', e, stackTrace);
     }
+  }
+
+  MediaType _contentTypeForPath(String path) {
+    final mimeType = lookupMimeType(path) ?? 'application/octet-stream';
+    return MediaType.parse(mimeType);
   }
 
   Future<http.Response> postRequest(String endpoint, Map body) async {
@@ -128,9 +150,7 @@ class ApiService extends GetxService {
       _handleTokenExpiry(response.statusCode);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [POST] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('POST', e, stackTrace);
     }
   }
 
@@ -169,9 +189,7 @@ class ApiService extends GetxService {
       _handleTokenExpiry(response.statusCode);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [PUT] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('PUT', e, stackTrace);
     }
   }
 
@@ -208,9 +226,7 @@ class ApiService extends GetxService {
       _handleTokenExpiry(response.statusCode);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [DELETE] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('DELETE', e, stackTrace);
     }
   }
 
@@ -237,7 +253,11 @@ class ApiService extends GetxService {
 
       // Add file
       request.files.add(
-        await http.MultipartFile.fromPath(fieldName, filePath),
+        await http.MultipartFile.fromPath(
+          fieldName,
+          filePath,
+          contentType: _contentTypeForPath(filePath),
+        ),
       );
       debugPrint('📎 [UPLOAD] File attached to request');
 
@@ -258,9 +278,7 @@ class ApiService extends GetxService {
       _handleTokenExpiry(response.statusCode);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [UPLOAD] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('UPLOAD', e, stackTrace);
     }
   }
 
@@ -290,7 +308,11 @@ class ApiService extends GetxService {
 
       for (String filePath in filePaths) {
         request.files.add(
-          await http.MultipartFile.fromPath(fieldName, filePath),
+          await http.MultipartFile.fromPath(
+            fieldName,
+            filePath,
+            contentType: _contentTypeForPath(filePath),
+          ),
         );
         debugPrint('📎 [MULTI-UPLOAD] File attached: $filePath');
       }
@@ -311,9 +333,7 @@ class ApiService extends GetxService {
       _handleTokenExpiry(response.statusCode);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [MULTI-UPLOAD] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('MULTI-UPLOAD', e, stackTrace);
     }
   }
 
@@ -345,7 +365,11 @@ class ApiService extends GetxService {
       // Add file only if filePath is provided (not null)
       if (filePath != null) {
         request.files.add(
-          await http.MultipartFile.fromPath(fieldName, filePath),
+          await http.MultipartFile.fromPath(
+            fieldName,
+            filePath,
+            contentType: _contentTypeForPath(filePath),
+          ),
         );
         debugPrint('📎 [UPLOAD-FIELDS] File attached: $filePath');
       } else {
@@ -374,9 +398,7 @@ class ApiService extends GetxService {
       _handleTokenExpiry(response.statusCode);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [UPLOAD-FIELDS] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('UPLOAD-FIELDS', e, stackTrace);
     }
   }
 
@@ -404,9 +426,7 @@ class ApiService extends GetxService {
       }
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [PUBLIC-GET] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('PUBLIC-GET', e, stackTrace);
     }
   }
 
@@ -436,19 +456,18 @@ class ApiService extends GetxService {
       }
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [PUBLIC-POST] Exception: $e');
-      debugPrint('📍 Stacktrace: $stackTrace');
-      return http.Response('Error: ${e.toString()}', 500);
+      return _buildNetworkErrorResponse('PUBLIC-POST', e, stackTrace);
     }
   }
 
-  // ✅ Handle Token Expiry (401 Unauthorized)
+  // ✅ Handle Token Expiry / Invalid Token
   void _handleTokenExpiry(int statusCode) {
-    if (statusCode == 401) {
+    if (statusCode == 401 || statusCode == 403) {
       // Clear stored token and redirect to login
       SharedPreferences.getInstance().then((prefs) {
         prefs.remove("jwt_token");
         prefs.remove("token_expiry_time");
+        prefs.remove("branch_id");
         Get.offAllNamed('/login');
       });
     }
