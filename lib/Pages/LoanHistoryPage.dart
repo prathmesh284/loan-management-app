@@ -18,6 +18,26 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
   bool isLoading = true;
   String? errorMessage;
 
+  double _toDouble(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0;
+  }
+
+  String _displayDate(Map<String, dynamic> loan) {
+    final loanDate = loan['loanDate'];
+    if (loanDate != null && loanDate.toString().trim().isNotEmpty) {
+      return loanDate.toString();
+    }
+
+    final nextEmiDate = loan['nextEmiDate'];
+    if (nextEmiDate != null && nextEmiDate.toString().trim().isNotEmpty) {
+      return nextEmiDate.toString();
+    }
+
+    return "N/A";
+  }
+
   @override
   void initState() {
     super.initState();
@@ -27,15 +47,14 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
   Future<void> _fetchLoanHistory() async {
     try {
       final apiService = Get.find<ApiService>();
-      // Fetch recent loans
-      final recentResponse = await apiService.getRequest('/api/dashboard/recent-loans/${widget.branchId}');
+      final historyResponse = await apiService.getRequest('/api/dashboard/loan-history/${widget.branchId}');
 
       // Fetch loans due soon
       final dueResponse = await apiService.getRequest('/api/dashboard/loans-due-soon/${widget.branchId}');
 
-      if (recentResponse.statusCode == 200 && dueResponse.statusCode == 200) {
+      if (historyResponse.statusCode == 200 && dueResponse.statusCode == 200) {
         setState(() {
-          recentLoans = jsonDecode(recentResponse.body) ?? [];
+          recentLoans = jsonDecode(historyResponse.body) ?? [];
           loansDueSoon = jsonDecode(dueResponse.body) ?? [];
           isLoading = false;
         });
@@ -215,7 +234,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Amount: ₹${(loan['loanAmount'] ?? 0).toStringAsFixed(2)}',
+              'Amount: ₹${_toDouble(loan['loanAmount']).toStringAsFixed(2)}',
               style: GoogleFonts.manrope(fontSize: 12),
             ),
             Text(
@@ -229,7 +248,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
           ],
         ),
         trailing: Text(
-          loan['loanDate'] ?? "N/A",
+          _displayDate(loan),
           style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey),
         ),
       ),

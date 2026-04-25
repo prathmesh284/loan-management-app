@@ -52,7 +52,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         List loans = jsonDecode(response.body);
 
         if (loans.isNotEmpty) {
-          activeLoan = loans.first;
+          final matchingLoan = loans.cast<dynamic>().firstWhere(
+            (loan) => loan is Map<String, dynamic> && loan['status'] == 'ACTIVE',
+            orElse: () => loans.first,
+          );
+          activeLoan = Map<String, dynamic>.from(matchingLoan as Map);
 
           // ✅ FETCH EMI DATA
           final emiRes = await apiService.getRequest(
@@ -129,6 +133,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   }
 
   Widget buildCustomerUI() {
+    final avatarName = widget.name.trim().isEmpty ? widget.customerId : widget.name;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -139,7 +145,15 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             children: [
               CircleAvatar(
                 radius: 32,
-                backgroundImage: NetworkImage(widget.imageUrl),
+                backgroundColor: const Color(0xFFFAF6E8),
+                child: Text(
+                  avatarName.isNotEmpty ? avatarName[0].toUpperCase() : "?",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: Colors.black87,
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Column(

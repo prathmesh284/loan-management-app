@@ -38,6 +38,13 @@ class _PayEmiPageState extends State<PayEmiPage> {
   bool isLoading = false;
   late String generatedReceiptId; // Auto-generated receipt ID
 
+  String get actionButtonLabel {
+    if (selectedMode != "RAZORPAY") {
+      return "Confirm Payment";
+    }
+    return selectedMethod == "UPI" ? "Send Payment Request" : "Send Payment Link";
+  }
+
   // 🎯 UPI Apps with icons
   final Map<String, Map<String, dynamic>> upiApps = {
     "GOOGLE_PAY": {
@@ -291,9 +298,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                       child: isLoading
                           ? const CircularProgressIndicator(color: Colors.black)
                           : Text(
-                              selectedMode == "RAZORPAY"
-                                  ? "Create Payment Link"
-                                  : "Confirm Payment",
+                              actionButtonLabel,
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -326,15 +331,6 @@ class _PayEmiPageState extends State<PayEmiPage> {
       }
       showCashPaymentConfirmation();
     } else if (selectedMethod == "UPI") {
-      if (upiIdController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please enter your UPI ID"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
       processOnlinePayment();
     } else {
       processOnlinePayment();
@@ -510,9 +506,24 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
       if (initiateResponse.statusCode == 200) {
         var responseData = jsonDecode(initiateResponse.body);
-        showPaymentLinkDialog(responseData['paymentLink'] ?? "");
+        final paymentLink = (responseData['paymentLink'] ?? "").toString();
+        if (paymentLink.isEmpty) {
+          throw Exception(responseData['message'] ?? "Payment link was not created");
+        }
+        showPaymentRequestSentDialog(paymentLink);
       } else {
-        throw Exception("Failed to create payment link");
+        String errorMessage = "Failed to create payment link";
+        try {
+          final errorData = jsonDecode(initiateResponse.body);
+          if (errorData is Map && errorData['message'] != null) {
+            errorMessage = errorData['message'].toString();
+          }
+        } catch (_) {
+          if (initiateResponse.body.trim().isNotEmpty) {
+            errorMessage = initiateResponse.body;
+          }
+        }
+        throw Exception(errorMessage);
       }
     } catch (e) {
       print("❌ RAZORPAY ERROR: $e");
@@ -523,19 +534,21 @@ class _PayEmiPageState extends State<PayEmiPage> {
   }
 
   // 📱 SHOW PAYMENT LINK DIALOG
-  void showPaymentLinkDialog(String paymentLink) {
+  void showPaymentRequestSentDialog(String paymentLink) {
     const Color gold = Color(0xFFecb613);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Complete Payment"),
+          title: const Text("Payment Request Sent"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Payment link has been created. Complete payment using your selected method.",
+              Text(
+                selectedMethod == "UPI"
+                    ? "The payment request has been created for the borrower. Razorpay will send the payment link to the customer's registered phone number, and email if available."
+                    : "The payment link has been created and sent to the borrower using the contact details saved for this customer.",
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
@@ -556,20 +569,30 @@ class _PayEmiPageState extends State<PayEmiPage> {
                       "Receipt ID: $generatedReceiptId",
                       style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
                     ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Borrower contact: ${widget.customerId}",
+                      style: const TextStyle(fontSize: 11),
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: gold),
-              onPressed: () async {
+              onPressed: () {
                 Navigator.pop(context);
+              },
+              child: const Text(
+                "OK",
+                style: TextStyle(color: Colors.black87),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
                 final uri = Uri.tryParse(paymentLink);
                 if (uri == null ||
                     !await launchUrl(
@@ -582,10 +605,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                   );
                 }
               },
-              child: const Text(
-                "Open Payment",
-                style: TextStyle(color: Colors.black87),
-              ),
+              child: const Text("Preview Link"),
             ),
           ],
         );
@@ -875,7 +895,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
         // 📝 UPI ID INPUT
         const Text(
-          "Enter Your UPI ID",
+          "UPI ID (Optional)",
           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
@@ -911,7 +931,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  "Your UPI ID will be used to receive payment via ${upiApps[selectedUpiApp]?['label']}",
+                  "The borrower will receive the Razorpay payment request on their registered phone number. The selected app is stored as staff preference only.",
                   style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
                 ),
               ),
