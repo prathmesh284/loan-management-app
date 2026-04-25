@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:loan_management_app/Service/api_service.dart';
@@ -37,6 +38,10 @@ class _PayEmiPageState extends State<PayEmiPage> {
   final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
   late String generatedReceiptId; // Auto-generated receipt ID
+  String? lastPaymentLink;
+  String? lastCustomerName;
+  String? lastCustomerPhone;
+  String? lastCustomerEmail;
 
   String get actionButtonLabel {
     if (selectedMode != "RAZORPAY") {
@@ -510,6 +515,11 @@ class _PayEmiPageState extends State<PayEmiPage> {
         if (paymentLink.isEmpty) {
           throw Exception(responseData['message'] ?? "Payment link was not created");
         }
+        lastPaymentLink = paymentLink;
+        lastCustomerName = responseData['customerName']?.toString();
+        lastCustomerPhone =
+            responseData['customerPhone']?.toString() ?? widget.customerId;
+        lastCustomerEmail = responseData['customerEmail']?.toString();
         showPaymentRequestSentDialog(paymentLink);
       } else {
         String errorMessage = "Failed to create payment link";
@@ -536,6 +546,11 @@ class _PayEmiPageState extends State<PayEmiPage> {
   // 📱 SHOW PAYMENT LINK DIALOG
   void showPaymentRequestSentDialog(String paymentLink) {
     const Color gold = Color(0xFFecb613);
+    final borrowerPhone = (lastCustomerPhone ?? widget.customerId).trim();
+    final borrowerName = (lastCustomerName?.trim().isNotEmpty ?? false)
+        ? lastCustomerName!.trim()
+        : "Customer";
+    final borrowerEmail = lastCustomerEmail?.trim();
 
     showDialog(
       context: context,
@@ -571,10 +586,18 @@ class _PayEmiPageState extends State<PayEmiPage> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      "Borrower contact: ${widget.customerId}",
+                      "Borrower contact: $borrowerPhone",
                       style: const TextStyle(fontSize: 11),
                       textAlign: TextAlign.center,
                     ),
+                    if (borrowerEmail != null && borrowerEmail.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        "Borrower email: $borrowerEmail",
+                        style: const TextStyle(fontSize: 11),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -592,25 +615,64 @@ class _PayEmiPageState extends State<PayEmiPage> {
               ),
             ),
             TextButton(
+              onPressed: () => shareOnWhatsApp(
+                borrowerPhone,
+                buildPaymentShareMessage(borrowerName, paymentLink),
+              ),
+              child: const Text("WhatsApp"),
+            ),
+            TextButton(
+              onPressed: () => shareBySms(
+                borrowerPhone,
+                buildPaymentShareMessage(borrowerName, paymentLink),
+              ),
+              child: const Text("SMS"),
+            ),
+            TextButton(
               onPressed: () async {
-                final uri = Uri.tryParse(paymentLink);
-                if (uri == null ||
-                    !await launchUrl(
-                      uri,
-                      mode: LaunchMode.externalApplication,
-                    )) {
-                  showErrorDialog(
-                    "Payment Link Error",
-                    "Could not open payment link.",
-                  );
-                }
+                await Clipboard.setData(ClipboardData(text: paymentLink));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Payment link copied")),
+                );
               },
-              child: const Text("Preview Link"),
+              child: const Text("Copy Link"),
             ),
           ],
         );
       },
     );
+  }
+
+  String buildPaymentShareMessage(String borrowerName, String paymentLink) {
+    return "Hello $borrowerName, your EMI payment request of ₹${payableAmount.toStringAsFixed(2)} is ready. "
+        "Please complete it using this secure Razorpay link: $paymentLink "
+        "Receipt ID: $generatedReceiptId";
+  }
+
+  Future<void> shareOnWhatsApp(String phoneNumber, String message) async {
+    final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'\\D'), '');
+    final uri = Uri.parse(
+      "https://wa.me/91$sanitizedPhone?text=${Uri.encodeComponent(message)}",
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      showErrorDialog(
+        "WhatsApp Share Failed",
+        "Could not open WhatsApp on this device.",
+      );
+    }
+  }
+
+  Future<void> shareBySms(String phoneNumber, String message) async {
+    final uri = Uri.parse(
+      "sms:$phoneNumber?body=${Uri.encodeComponent(message)}",
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      showErrorDialog(
+        "SMS Share Failed",
+        "Could not open the SMS app on this device.",
+      );
+    }
   }
 
   // ✅ SUCCESS DIALOG
