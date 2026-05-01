@@ -93,7 +93,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
           "Loan History",
           style: GoogleFonts.manrope(
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 18,
             color: textDark,
           ),
         ),

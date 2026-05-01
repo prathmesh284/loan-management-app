@@ -115,7 +115,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
             color: Colors.black,
             fontFamily: 'Manrope',
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
         leading: IconButton(

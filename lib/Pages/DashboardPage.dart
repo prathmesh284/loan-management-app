@@ -34,19 +34,19 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadDashboardData() async {
     try {
-      // Load gold price, dashboard stats, and branch name concurrently
-      final goldFuture = _loadGoldPrice();
-      final statsFuture = _loadDashboardStats();
-      final branchFuture = _loadBranchName();
-      final upcomingPaymentsFuture = _loadUpcomingPayments();
-
-      await Future.wait([goldFuture, statsFuture, branchFuture, upcomingPaymentsFuture]);
+      // Critical path: load only the minimum needed for first paint.
+      await _loadDashboardStats();
 
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
+
+      // Non-critical sections continue in the background.
+      _loadBranchName();
+      _loadGoldPrice();
+      _loadUpcomingPayments();
     } catch (e) {
       debugPrint('❌ Error loading dashboard: $e');
       if (mounted) {
@@ -107,10 +107,9 @@ class _DashboardPageState extends State<DashboardPage> {
       final apiService = Get.find<ApiService>();
       final response = await apiService.getRequest('/api/dashboard/stats/${widget.branchId}');
 
-      if (!mounted) return;
-
       if (response.statusCode == 200) {
         final stats = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           _dashboardStats = stats;
         });
@@ -226,25 +225,30 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: bgLight.withOpacity(0.9),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _branchName ?? "Loan Management",
-              style: GoogleFonts.manrope(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: textDark,
+        titleSpacing: 0,
+        centerTitle: false,
+        title: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _branchName ?? "Loan Management",
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: textDark,
+                ),
               ),
-            ),
-            Text(
-              "Branch Dashboard",
-              style: GoogleFonts.manrope(
-                fontSize: 13,
-                color: Colors.grey.shade600,
+              Text(
+                "Branch Dashboard",
+                style: GoogleFonts.manrope(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           Stack(
@@ -432,7 +436,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          "No payments due in the next 3 days.",
+                          "Loading upcoming payments or no payments due in the next 3 days.",
                           textAlign: TextAlign.center,
                           style: GoogleFonts.manrope(
                             color: Colors.grey.shade600,

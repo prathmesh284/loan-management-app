@@ -572,7 +572,11 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
         elevation: 0,
         title: const Text(
           "Document Storage",
-          style: TextStyle(color: Colors.black87),
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 18
+          ),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),

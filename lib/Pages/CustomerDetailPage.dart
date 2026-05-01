@@ -1040,12 +1040,31 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     return toInt(schedule?['remainingEmis'] ?? loan['remainingEmis']) > 0;
   }
 
-  List<Map<String, dynamic>> get allEmiItems {
-    final items = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> upcomingItemsForLoan(Map<String, dynamic> loan) {
+    final schedule = widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
+    final upcomingPayments = schedule?['upcomingPayments'];
 
-    for (final loan in widget.loans.where(isUpcomingLoan)) {
-      final schedule = widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
-      items.add({
+    if (upcomingPayments is List && upcomingPayments.isNotEmpty) {
+      return upcomingPayments
+          .whereType<Map>()
+          .map((payment) {
+            final item = Map<String, dynamic>.from(payment);
+            return {
+              "type": "upcoming",
+              "loanId": loan['id'],
+              "title": "Loan #${loan['id']} • EMI ${item['emiNumber'] ?? ''}",
+              "date": item['dueDate']?.toString() ?? "N/A",
+              "amount": toDouble(item['amount']),
+              "remainingEmis": toInt(schedule?['remainingEmis'] ?? loan['remainingEmis']),
+              "paymentMethod": "Upcoming EMI",
+              "status": item['status']?.toString() ?? "UPCOMING",
+            };
+          })
+          .toList();
+    }
+
+    return [
+      {
         "type": "upcoming",
         "loanId": loan['id'],
         "title": "Loan #${loan['id']}",
@@ -1056,7 +1075,15 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
         "remainingEmis": toInt(schedule?['remainingEmis'] ?? loan['remainingEmis']),
         "paymentMethod": "Upcoming EMI",
         "status": "UPCOMING",
-      });
+      }
+    ];
+  }
+
+  List<Map<String, dynamic>> get allEmiItems {
+    final items = <Map<String, dynamic>>[];
+
+    for (final loan in widget.loans.where(isUpcomingLoan)) {
+      items.addAll(upcomingItemsForLoan(loan));
     }
 
     for (final receipt in receiptHistory) {
@@ -1076,8 +1103,15 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     return items;
   }
 
-  List<Map<String, dynamic>> get upcomingLoans {
-    return widget.loans.where(isUpcomingLoan).toList();
+  List<Map<String, dynamic>> get upcomingEmiItems {
+    final items = <Map<String, dynamic>>[];
+    for (final loan in widget.loans.where(isUpcomingLoan)) {
+      items.addAll(upcomingItemsForLoan(loan));
+    }
+    items.sort(
+      (a, b) => (a['date']?.toString() ?? "").compareTo(b['date']?.toString() ?? ""),
+    );
+    return items;
   }
 
   List<Map<String, dynamic>> get pastReceipts {
@@ -1110,10 +1144,10 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
                   else
                     ...allEmiItems.map((item) => _buildUnifiedEmiCard(item)),
                 if (selectedTabIndex == 1)
-                  if (upcomingLoans.isEmpty)
+                  if (upcomingEmiItems.isEmpty)
                     _buildEmptyState("No upcoming EMI details found.")
                   else
-                    ...upcomingLoans.map((loan) => _buildUpcomingCard(loan)),
+                    ...upcomingEmiItems.map((item) => _buildUnifiedEmiCard(item)),
                 if (selectedTabIndex == 2)
                   if (pastReceipts.isEmpty)
                     _buildEmptyState("No past EMI history found.")
@@ -1156,7 +1190,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
             children: [
               Expanded(child: _buildOverviewStat("All", allEmiItems.length.toString())),
               const SizedBox(width: 10),
-              Expanded(child: _buildOverviewStat("Upcoming", upcomingLoans.length.toString())),
+              Expanded(child: _buildOverviewStat("Upcoming", upcomingEmiItems.length.toString())),
               const SizedBox(width: 10),
               Expanded(child: _buildOverviewStat("Past", pastReceipts.length.toString())),
             ],
@@ -1265,22 +1299,6 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
         ],
       ),
     );
-  }
-
-  Widget _buildUpcomingCard(Map<String, dynamic> loan) {
-    final schedule = widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
-    return _buildUnifiedEmiCard({
-      "type": "upcoming",
-      "loanId": loan['id'],
-      "title": "Loan #${loan['id']}",
-      "date": schedule?['nextEmiDate']?.toString() ??
-          loan['nextEmiDate']?.toString() ??
-          "N/A",
-      "amount": toDouble(schedule?['monthlyEmi'] ?? loan['emi']),
-      "remainingEmis": toInt(schedule?['remainingEmis'] ?? loan['remainingEmis']),
-      "paymentMethod": "Upcoming EMI",
-      "status": "UPCOMING",
-    });
   }
 
   Widget _buildReceiptCard(Map<String, dynamic> receipt) {
