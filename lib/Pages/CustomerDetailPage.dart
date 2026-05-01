@@ -95,7 +95,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         });
       }
     } catch (e) {
-      print("❌ Exception: $e");
+      debugPrint("❌ Exception: $e");
 
       setState(() {
         isLoading = false;
@@ -223,7 +223,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   }
 
   Widget buildPaymentProgress(Map<String, dynamic> loan) {
-    double total = toDouble(emiData?['totalEmis'] ?? loan['totalEmis']);
+    double total = toDouble(
+      emiData?['totalEmis'] ?? loan['totalEmis'] ?? loan['tenure'],
+    );
     double paid = toDouble(emiData?['paidEmis'] ?? loan['paidEmis']);
 
     if (total <= 0) {
@@ -266,7 +268,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("${paid.toInt()} / ${total.toInt()} EMIs Paid",
+            Text("${paid.toInt()} of ${total.toInt()} months completed",
                 style: const TextStyle(fontWeight: FontWeight.w500)),
             Text("${(progress * 100).toStringAsFixed(1)}%",
                 style: const TextStyle(
@@ -333,7 +335,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
 
         const SizedBox(height: 8),
 
-        Text("Remaining: ${(total - paid).toInt()} EMIs",
+        Text(
+          "EMI progress: ${paid.toInt()}/${total.toInt()} paid, ${(total - paid).toInt()} remaining",
             style: const TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );
@@ -360,8 +363,14 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     loanId: activeLoan?['id']?.toString() ?? "",
                     customerId: widget.customerId,
                     totalLoanAmount: toDouble(activeLoan?['totalAmount']),
-                    totalEmis: toDouble(activeLoan?['totalEmis']).toInt(),
-                    paidEmis: toDouble(activeLoan?['paidEmis']).toInt(),
+                    totalEmis: toDouble(
+                      emiData?['totalEmis'] ??
+                          activeLoan?['totalEmis'] ??
+                          activeLoan?['tenure'],
+                    ).toInt(),
+                    paidEmis: toDouble(
+                      emiData?['paidEmis'] ?? activeLoan?['paidEmis'],
+                    ).toInt(),
                     nextEmiDate: activeLoan?['nextEmiDate'],
                   ),
                 ),

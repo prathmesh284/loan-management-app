@@ -75,24 +75,39 @@ class _PayEmiPageState extends State<PayEmiPage> {
   @override
   void initState() {
     super.initState();
-    generatedReceiptId = generateReceiptId(); // Generate on page load
+    generatedReceiptId = generateReceiptId();
+    _loadReceiptNumber();
   }
 
-  // 🎯 GENERATE RECEIPT ID
+  Future<void> _loadReceiptNumber() async {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.getRequest(
+        "/api/payments/next-receipt-number/${widget.customerId}",
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final payload = jsonDecode(response.body);
+        final backendReceiptNumber = payload['receiptNumber']?.toString();
+        if (backendReceiptNumber != null && backendReceiptNumber.isNotEmpty) {
+          setState(() => generatedReceiptId = backendReceiptNumber);
+        }
+      }
+    } catch (_) {
+      // Keep local fallback if preview fetch fails.
+    }
+  }
+
   String generateReceiptId() {
-    // Format: RECIPT-YYYYMM_CUSTOMERID_LASTNUM_NO
     DateTime now = DateTime.now();
     String yearMonth = '${now.year}${now.month.toString().padLeft(2, '0')}';
-    
-    // Extract last digit of customer ID
-    String lastDigit = widget.customerId.isNotEmpty 
-        ? widget.customerId.substring(widget.customerId.length - 1) 
-        : '0';
-    
-    // Sequential number (in real app, get from backend)
+    String digitsOnly = widget.customerId.replaceAll(RegExp(r'[^0-9]'), '');
+    String lastDigits = digitsOnly.isEmpty
+        ? '000'
+        : digitsOnly.substring(digitsOnly.length > 3 ? digitsOnly.length - 3 : 0);
     String sequentialNo = '${widget.paidEmis + 1}'.padLeft(3, '0');
-    
-    return 'RECIPT-$yearMonth\_${widget.customerId}\_$lastDigit\_$sequentialNo';
+
+    return 'RECIPT-${yearMonth}_${widget.customerId}_${lastDigits}_$sequentialNo';
   }
 
   // 💰 CALCULATE EMI AMOUNT
@@ -163,8 +178,11 @@ class _PayEmiPageState extends State<PayEmiPage> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.copy, size: 18),
-                          onPressed: () {
-                            // Copy to clipboard
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              ClipboardData(text: generatedReceiptId),
+                            );
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Receipt ID copied!")),
                             );
@@ -325,15 +343,6 @@ class _PayEmiPageState extends State<PayEmiPage> {
   // ============= PAYMENT HANDLER =============
   void handlePayment() async {
     if (selectedMethod == "CASH") {
-      if (cashReferenceController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please enter reference/receipt number"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
       showCashPaymentConfirmation();
     } else if (selectedMethod == "UPI") {
       processOnlinePayment();
@@ -444,7 +453,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
         "paymentMethod": "CASH",
         "paymentMode": "MANUAL",
         "remarks": remarksController.text,
-        "receiptNumber": generatedReceiptId, // Include generated receipt ID
+        "receiptNumber": generatedReceiptId,
         "generateReceipt": true,
       };
 
@@ -453,21 +462,24 @@ class _PayEmiPageState extends State<PayEmiPage> {
         body,
       );
 
-      print("📡 CASH PAYMENT STATUS: ${response.statusCode}");
-      print("📦 CASH PAYMENT BODY: ${response.body}");
+      debugPrint("📡 CASH PAYMENT STATUS: ${response.statusCode}");
+      debugPrint("📦 CASH PAYMENT BODY: ${response.body}");
 
-      if (response.statusCode == 200) {
+        if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
+        final receiptNumber =
+            jsonResponse['receiptNumber']?.toString() ?? generatedReceiptId;
+        setState(() => generatedReceiptId = receiptNumber);
 
         showSuccessDialog(
           "Payment Successful!",
-          "Receipt: ${jsonResponse['receiptNumber'] ?? generatedReceiptId}\n\nAmount Paid: ₹${payableAmount.toStringAsFixed(2)}",
+          "Receipt: $receiptNumber\n\nAmount Paid: ₹${payableAmount.toStringAsFixed(2)}",
         );
 
         Navigator.pop(context, {
           "success": true,
           "loanId": widget.loanId,
-          "receiptNumber": jsonResponse['receiptNumber'] ?? generatedReceiptId,
+          "receiptNumber": receiptNumber,
           "emiId": jsonResponse['emiId'],
           "amountPaid": jsonResponse['amountPaid'],
         });
@@ -476,7 +488,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
         throw Exception(errorBody['message'] ?? "Payment processing failed");
       }
     } catch (e) {
-      print("❌ CASH PAYMENT ERROR: $e");
+      debugPrint("❌ CASH PAYMENT ERROR: $e");
       showErrorDialog("Payment Failed", e.toString());
     }
 
@@ -506,15 +518,18 @@ class _PayEmiPageState extends State<PayEmiPage> {
         initiateBody,
       );
 
-      print("📡 RAZORPAY INITIATE STATUS: ${initiateResponse.statusCode}");
-      print("📦 RAZORPAY INITIATE BODY: ${initiateResponse.body}");
+      debugPrint("📡 RAZORPAY INITIATE STATUS: ${initiateResponse.statusCode}");
+      debugPrint("📦 RAZORPAY INITIATE BODY: ${initiateResponse.body}");
 
       if (initiateResponse.statusCode == 200) {
         var responseData = jsonDecode(initiateResponse.body);
         final paymentLink = (responseData['paymentLink'] ?? "").toString();
+        final receiptNumber =
+            responseData['receiptNumber']?.toString() ?? generatedReceiptId;
         if (paymentLink.isEmpty) {
           throw Exception(responseData['message'] ?? "Payment link was not created");
         }
+        setState(() => generatedReceiptId = receiptNumber);
         lastPaymentLink = paymentLink;
         lastCustomerName = responseData['customerName']?.toString();
         lastCustomerPhone =
@@ -536,7 +551,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print("❌ RAZORPAY ERROR: $e");
+      debugPrint("❌ RAZORPAY ERROR: $e");
       showErrorDialog("Payment Initiation Failed", e.toString());
     }
 
@@ -827,7 +842,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                           ),
                         ),
                         Text(
-                          "Receipt will be auto-generated",
+                          "Shared receipt format is auto-generated",
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],

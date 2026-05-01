@@ -145,6 +145,28 @@ class _NewLoanPageState extends State<NewLoanPage> {
     await _onCustomerIdChanged();
   }
 
+  Future<bool> _requestLoanApprovalOtp() async {
+    final response = await apiService.postRequest(
+      "/api/customers/resend-otp",
+      {
+        "customerId": idController.text.trim(),
+      },
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return true;
+    }
+
+    if (!mounted) return false;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Could not send OTP: ${response.body}"),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color primary = Color(0xFFECB613);
@@ -422,40 +444,43 @@ class _NewLoanPageState extends State<NewLoanPage> {
 
     try {
       final apiService = Get.find<ApiService>();
-      if (!_customerPhoneVerified) {
-        final verified = await OtpVerificationDialog.show(
-          context,
-          title: "Verify Before Loan",
-          subtitle: "Approve this loan only after the borrower confirms OTP on their phone.",
-          phoneNumber: idController.text.trim(),
-          onVerify: (otpCode) => apiService.postRequest(
-            "/api/customers/verify-otp",
-            {
-              "customerId": idController.text.trim(),
-              "otpCode": otpCode,
-            },
-          ),
-          onResend: () => apiService.postRequest(
-            "/api/customers/resend-otp",
-            {
-              "customerId": idController.text.trim(),
-            },
+      final otpSent = await _requestLoanApprovalOtp();
+      if (!otpSent) {
+        return;
+      }
+
+      final verified = await OtpVerificationDialog.show(
+        context,
+        title: "Verify Before Loan",
+        subtitle: "A fresh OTP was sent to the borrower. Verify it here before creating this new loan.",
+        phoneNumber: idController.text.trim(),
+        onVerify: (otpCode) => apiService.postRequest(
+          "/api/customers/verify-otp",
+          {
+            "customerId": idController.text.trim(),
+            "otpCode": otpCode,
+          },
+        ),
+        onResend: () => apiService.postRequest(
+          "/api/customers/resend-otp",
+          {
+            "customerId": idController.text.trim(),
+          },
+        ),
+      );
+
+      if (!verified) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Loan creation stopped because OTP verification is pending."),
+            backgroundColor: Colors.orange,
           ),
         );
-
-        if (!verified) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Loan creation stopped because OTP verification is pending."),
-              backgroundColor: Colors.orange,
-            ),
-          );
-          return;
-        }
-
-        setState(() => _customerPhoneVerified = true);
+        return;
       }
+
+      setState(() => _customerPhoneVerified = true);
 
       final response = await apiService.postRequest("/api/loans/add", loanData);
       

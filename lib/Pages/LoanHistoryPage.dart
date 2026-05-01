@@ -66,7 +66,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
         });
       }
     } catch (e) {
-      print('❌ Error fetching loan history: $e');
+      debugPrint('❌ Error fetching loan history: $e');
       setState(() {
         errorMessage = 'Error: $e';
         isLoading = false;

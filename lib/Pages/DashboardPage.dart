@@ -48,7 +48,7 @@ class _DashboardPageState extends State<DashboardPage> {
         });
       }
     } catch (e) {
-      print('❌ Error loading dashboard: $e');
+      debugPrint('❌ Error loading dashboard: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -97,7 +97,7 @@ class _DashboardPageState extends State<DashboardPage> {
         });
       }
     } catch (e) {
-      print('⚠️ Could not load gold price: $e');
+      debugPrint('⚠️ Could not load gold price: $e');
       // Don't fail entire dashboard if gold price fails
     }
   }
@@ -118,7 +118,7 @@ class _DashboardPageState extends State<DashboardPage> {
         throw Exception('Failed to load dashboard stats: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error loading dashboard stats: $e');
+      debugPrint('❌ Error loading dashboard stats: $e');
       if (!mounted) return;
 
       // Provide default empty stats if load fails
@@ -151,7 +151,7 @@ class _DashboardPageState extends State<DashboardPage> {
         throw Exception('Failed to load upcoming payments: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error loading upcoming payments: $e');
+      debugPrint('❌ Error loading upcoming payments: $e');
       if (!mounted) return;
 
       setState(() {
