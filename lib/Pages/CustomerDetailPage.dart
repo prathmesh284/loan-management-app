@@ -563,7 +563,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   }
 }
 
-class CustomerLoanDetailsPage extends StatelessWidget {
+class CustomerLoanDetailsPage extends StatefulWidget {
   final String customerName;
   final List<Map<String, dynamic>> loans;
   final Map<String, Map<String, dynamic>> paymentScheduleByLoanId;
@@ -574,6 +574,14 @@ class CustomerLoanDetailsPage extends StatelessWidget {
     required this.loans,
     required this.paymentScheduleByLoanId,
   });
+
+  @override
+  State<CustomerLoanDetailsPage> createState() => _CustomerLoanDetailsPageState();
+}
+
+class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
+  int selectedTabIndex = 0;
+  static const Color accent = Color(0xFFecb613);
 
   double toDouble(dynamic val) {
     if (val == null) return 0;
@@ -588,7 +596,33 @@ class CustomerLoanDetailsPage extends StatelessWidget {
   }
 
   Map<String, dynamic>? scheduleFor(Map<String, dynamic> loan) {
-    return paymentScheduleByLoanId[toInt(loan['id']).toString()];
+    return widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
+  }
+
+  bool isActiveLoan(Map<String, dynamic> loan) {
+    return loan['status']?.toString().toUpperCase() == "ACTIVE";
+  }
+
+  bool isCompletedLoan(Map<String, dynamic> loan) {
+    return loan['status']?.toString().toUpperCase() == "CLOSED";
+  }
+
+  bool isPastLoan(Map<String, dynamic> loan) {
+    final status = loan['status']?.toString().toUpperCase() ?? "";
+    return status == "CLOSED" || status == "DEFAULTED";
+  }
+
+  List<Map<String, dynamic>> get filteredLoans {
+    switch (selectedTabIndex) {
+      case 1:
+        return widget.loans.where(isActiveLoan).toList();
+      case 2:
+        return widget.loans.where(isCompletedLoan).toList();
+      case 3:
+        return widget.loans.where(isPastLoan).toList();
+      default:
+        return widget.loans;
+    }
   }
 
   @override
@@ -596,15 +630,21 @@ class CustomerLoanDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F6),
       appBar: AppBar(
-        title: Text("$customerName Loans"),
+        title: Text("${widget.customerName} Loans"),
         backgroundColor: Colors.white,
         elevation: 0.2,
       ),
-      body: ListView.builder(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        itemCount: loans.length,
-        itemBuilder: (context, index) {
-          final loan = loans[index];
+        children: [
+          _buildOverviewCard(),
+          const SizedBox(height: 16),
+          _buildFilterBar(),
+          const SizedBox(height: 16),
+          if (filteredLoans.isEmpty)
+            _buildEmptyState("No loan details found for this filter.")
+          else
+            ...filteredLoans.map((loan) {
           final schedule = scheduleFor(loan);
           final totalEmis =
               toInt(schedule?['totalEmis'] ?? loan['totalEmis'] ?? loan['tenure']);
@@ -615,74 +655,245 @@ class CustomerLoanDetailsPage extends StatelessWidget {
               toDouble(schedule?['remainingAmount'] ?? loan['remainingAmount']);
 
           return Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      gradient: LinearGradient(
+                        colors: [Color(0xFFF7E8A4), Color(0xFFFFF7D7)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "Loan #${loan['id']}",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        _buildStatusPill(loan['status']?.toString() ?? "UNKNOWN"),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _detailRow("Status", loan['status']?.toString() ?? "UNKNOWN"),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Loan Date",
+                          loan['loanDate']?.toString() ?? "N/A",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Gold Details",
+                          "${loan['goldItemType'] ?? 'Gold Loan'} • ${loan['goldPurity'] ?? ''}",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Weight",
+                          "${toDouble(loan['weight']).toStringAsFixed(2)} g",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Loan Amount",
+                          "₹${toDouble(loan['loanAmount']).toStringAsFixed(2)}",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Interest Rate",
+                          "${toDouble(loan['interestRate']).toStringAsFixed(2)}%",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Monthly EMI",
+                          "₹${toDouble(schedule?['monthlyEmi'] ?? loan['emi']).toStringAsFixed(2)}",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Total Payable",
+                          "₹${toDouble(loan['totalAmount']).toStringAsFixed(2)}",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Remaining Amount",
+                          "₹${remainingAmount.toStringAsFixed(2)}",
+                        ),
+                        const SizedBox(height: 8),
+                        _detailRow("Total EMIs", totalEmis.toString()),
+                        const SizedBox(height: 8),
+                        _detailRow("Paid EMIs", paidEmis.toString()),
+                        const SizedBox(height: 8),
+                        _detailRow("Remaining EMIs", remainingEmis.toString()),
+                        const SizedBox(height: 8),
+                        _detailRow(
+                          "Next EMI Date",
+                          schedule?['nextEmiDate']?.toString() ??
+                              loan['nextEmiDate']?.toString() ??
+                              "N/A",
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewCard() {
+    final activeCount = widget.loans.where(isActiveLoan).length;
+    final completedCount = widget.loans.where(isCompletedLoan).length;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1F1A0D), Color(0xFF5C4914)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Loan Portfolio",
+            style: TextStyle(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade300),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Loan #${loan['id']}",
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                _detailRow("Status", loan['status']?.toString() ?? "UNKNOWN"),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Gold Details",
-                  "${loan['goldItemType'] ?? 'Gold Loan'} • ${loan['goldPurity'] ?? ''}",
-                ),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Weight",
-                  "${toDouble(loan['weight']).toStringAsFixed(2)} g",
-                ),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Loan Amount",
-                  "₹${toDouble(loan['loanAmount']).toStringAsFixed(2)}",
-                ),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Interest Rate",
-                  "${toDouble(loan['interestRate']).toStringAsFixed(2)}%",
-                ),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Monthly EMI",
-                  "₹${toDouble(schedule?['monthlyEmi'] ?? loan['emi']).toStringAsFixed(2)}",
-                ),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Total Payable",
-                  "₹${toDouble(loan['totalAmount']).toStringAsFixed(2)}",
-                ),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Remaining Amount",
-                  "₹${remainingAmount.toStringAsFixed(2)}",
-                ),
-                const SizedBox(height: 8),
-                _detailRow("Total EMIs", totalEmis.toString()),
-                const SizedBox(height: 8),
-                _detailRow("Paid EMIs", paidEmis.toString()),
-                const SizedBox(height: 8),
-                _detailRow("Remaining EMIs", remainingEmis.toString()),
-                const SizedBox(height: 8),
-                _detailRow(
-                  "Next EMI Date",
-                  schedule?['nextEmiDate']?.toString() ??
-                      loan['nextEmiDate']?.toString() ??
-                      "N/A",
-                ),
-              ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "${widget.loans.length} total loans for ${widget.customerName}",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: _buildOverviewStat("All", widget.loans.length.toString())),
+              const SizedBox(width: 10),
+              Expanded(child: _buildOverviewStat("Active", activeCount.toString())),
+              const SizedBox(width: 10),
+              Expanded(child: _buildOverviewStat("Completed", completedCount.toString())),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewStat(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          _buildFilterChip("All", 0),
+          _buildFilterChip("Active", 1),
+          _buildFilterChip("Completed", 2),
+          _buildFilterChip("Past", 3),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, int index) {
+    final isSelected = selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => selectedTabIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: isSelected ? Colors.black87 : Colors.black54,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(color: Colors.grey),
       ),
     );
   }
@@ -707,6 +918,30 @@ class CustomerLoanDetailsPage extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildStatusPill(String label) {
+    final normalized = label.toUpperCase();
+    final color = normalized == "ACTIVE"
+        ? const Color(0xFF8A6D12)
+        : normalized == "CLOSED"
+            ? Colors.green
+            : Colors.orange;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        normalized,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
 }
 
 class CustomerEmiDetailsPage extends StatefulWidget {
@@ -729,6 +964,8 @@ class CustomerEmiDetailsPage extends StatefulWidget {
 
 class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
   bool isLoading = true;
+  int selectedTabIndex = 0;
+  static const Color accent = Color(0xFFecb613);
   List<Map<String, dynamic>> receiptHistory = [];
   final apiService = Get.find<ApiService>();
 
@@ -781,6 +1018,57 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     }
   }
 
+  bool isUpcomingLoan(Map<String, dynamic> loan) {
+    final schedule = widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
+    return toInt(schedule?['remainingEmis'] ?? loan['remainingEmis']) > 0;
+  }
+
+  List<Map<String, dynamic>> get allEmiItems {
+    final items = <Map<String, dynamic>>[];
+
+    for (final loan in widget.loans.where(isUpcomingLoan)) {
+      final schedule = widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
+      items.add({
+        "type": "upcoming",
+        "loanId": loan['id'],
+        "title": "Loan #${loan['id']}",
+        "date": schedule?['nextEmiDate']?.toString() ??
+            loan['nextEmiDate']?.toString() ??
+            "N/A",
+        "amount": toDouble(schedule?['monthlyEmi'] ?? loan['emi']),
+        "remainingEmis": toInt(schedule?['remainingEmis'] ?? loan['remainingEmis']),
+        "paymentMethod": "Upcoming EMI",
+        "status": "UPCOMING",
+      });
+    }
+
+    for (final receipt in receiptHistory) {
+      items.add({
+        "type": "history",
+        "loanId": receipt['loanId'],
+        "title": receipt['receiptNumber']?.toString() ?? "Receipt",
+        "date": receipt['paidDate']?.toString() ?? "N/A",
+        "amount": toDouble(receipt['amountPaid']),
+        "remainingEmis": toInt(receipt['remainingEmis']),
+        "paymentMethod": receipt['paymentMethod']?.toString() ?? "N/A",
+        "status": receipt['status']?.toString() ?? "N/A",
+      });
+    }
+
+    items.sort((a, b) => (b['date']?.toString() ?? "").compareTo(a['date']?.toString() ?? ""));
+    return items;
+  }
+
+  List<Map<String, dynamic>> get upcomingLoans {
+    return widget.loans.where(isUpcomingLoan).toList();
+  }
+
+  List<Map<String, dynamic>> get pastReceipts {
+    return receiptHistory
+        .where((receipt) => (receipt['status']?.toString().toUpperCase() ?? "") != "UPCOMING")
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -795,120 +1083,255 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text(
-                  "Upcoming EMI Summary",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                ...widget.loans
-                    .where((loan) {
-                      final schedule = widget.paymentScheduleByLoanId[
-                          toInt(loan['id']).toString()];
-                      return (schedule?['remainingEmis'] ?? loan['remainingEmis'] ?? 0) > 0;
-                    })
-                    .map((loan) {
-                  final schedule =
-                      widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Loan #${loan['id']}",
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 8),
-                        _row(
-                          "Next EMI Date",
-                          schedule?['nextEmiDate']?.toString() ??
-                              loan['nextEmiDate']?.toString() ??
-                              "N/A",
-                        ),
-                        const SizedBox(height: 8),
-                        _row(
-                          "Upcoming EMI",
-                          "₹${toDouble(schedule?['monthlyEmi'] ?? loan['emi']).toStringAsFixed(2)}",
-                        ),
-                        const SizedBox(height: 8),
-                        _row(
-                          "Remaining EMIs",
-                          "${toInt(schedule?['remainingEmis'] ?? loan['remainingEmis'])}",
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-                const SizedBox(height: 10),
-                const Text(
-                  "EMI Payment History",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                if (receiptHistory.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const Text(
-                      "No EMI receipt history found yet.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                else
-                  ...receiptHistory.map((receipt) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            receipt['receiptNumber']?.toString() ?? "Receipt",
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 8),
-                          _row("Loan ID", receipt['loanId']?.toString() ?? "N/A"),
-                          const SizedBox(height: 8),
-                          _row(
-                            "Amount Paid",
-                            "₹${toDouble(receipt['amountPaid']).toStringAsFixed(2)}",
-                          ),
-                          const SizedBox(height: 8),
-                          _row(
-                            "Payment Method",
-                            receipt['paymentMethod']?.toString() ?? "N/A",
-                          ),
-                          const SizedBox(height: 8),
-                          _row(
-                            "Paid Date",
-                            receipt['paidDate']?.toString() ?? "N/A",
-                          ),
-                          const SizedBox(height: 8),
-                          _row(
-                            "Remaining EMIs",
-                            receipt['remainingEmis']?.toString() ?? "N/A",
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
+                _buildOverviewCard(),
+                const SizedBox(height: 16),
+                _buildFilterBar(),
+                const SizedBox(height: 16),
+                if (selectedTabIndex == 0)
+                  if (allEmiItems.isEmpty)
+                    _buildEmptyState("No EMI details found.")
+                  else
+                    ...allEmiItems.map((item) => _buildUnifiedEmiCard(item)),
+                if (selectedTabIndex == 1)
+                  if (upcomingLoans.isEmpty)
+                    _buildEmptyState("No upcoming EMI details found.")
+                  else
+                    ...upcomingLoans.map((loan) => _buildUpcomingCard(loan)),
+                if (selectedTabIndex == 2)
+                  if (pastReceipts.isEmpty)
+                    _buildEmptyState("No past EMI history found.")
+                  else
+                    ...pastReceipts.map((receipt) => _buildReceiptCard(receipt)),
               ],
             ),
+    );
+  }
+
+  Widget _buildOverviewCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F1C26), Color(0xFF224152)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "EMI Timeline",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Upcoming and past EMI records for ${widget.customerName}",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: _buildOverviewStat("All", allEmiItems.length.toString())),
+              const SizedBox(width: 10),
+              Expanded(child: _buildOverviewStat("Upcoming", upcomingLoans.length.toString())),
+              const SizedBox(width: 10),
+              Expanded(child: _buildOverviewStat("Past", pastReceipts.length.toString())),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewStat(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnifiedEmiCard(Map<String, dynamic> item) {
+    final isUpcoming = item['type'] == "upcoming";
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              gradient: LinearGradient(
+                colors: isUpcoming
+                    ? const [Color(0xFFDDF3FF), Color(0xFFF6FBFF)]
+                    : const [Color(0xFFF7E8A4), Color(0xFFFFF7D7)],
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item['title']?.toString() ?? "EMI",
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                _buildStatusBadge(item['status']?.toString() ?? "N/A"),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: [
+                _row("Loan ID", item['loanId']?.toString() ?? "N/A"),
+                const SizedBox(height: 8),
+                _row("Date", item['date']?.toString() ?? "N/A"),
+                const SizedBox(height: 8),
+                _row(
+                  "Amount",
+                  "₹${toDouble(item['amount']).toStringAsFixed(2)}",
+                ),
+                const SizedBox(height: 8),
+                _row(
+                  isUpcoming ? "Type" : "Payment Method",
+                  item['paymentMethod']?.toString() ?? "N/A",
+                ),
+                const SizedBox(height: 8),
+                _row(
+                  "Remaining EMIs",
+                  item['remainingEmis']?.toString() ?? "N/A",
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingCard(Map<String, dynamic> loan) {
+    final schedule = widget.paymentScheduleByLoanId[toInt(loan['id']).toString()];
+    return _buildUnifiedEmiCard({
+      "type": "upcoming",
+      "loanId": loan['id'],
+      "title": "Loan #${loan['id']}",
+      "date": schedule?['nextEmiDate']?.toString() ??
+          loan['nextEmiDate']?.toString() ??
+          "N/A",
+      "amount": toDouble(schedule?['monthlyEmi'] ?? loan['emi']),
+      "remainingEmis": toInt(schedule?['remainingEmis'] ?? loan['remainingEmis']),
+      "paymentMethod": "Upcoming EMI",
+      "status": "UPCOMING",
+    });
+  }
+
+  Widget _buildReceiptCard(Map<String, dynamic> receipt) {
+    return _buildUnifiedEmiCard({
+      "type": "history",
+      "loanId": receipt['loanId'],
+      "title": receipt['receiptNumber']?.toString() ?? "Receipt",
+      "date": receipt['paidDate']?.toString() ?? "N/A",
+      "amount": toDouble(receipt['amountPaid']),
+      "remainingEmis": receipt['remainingEmis'],
+      "paymentMethod": receipt['paymentMethod']?.toString() ?? "N/A",
+      "status": receipt['status']?.toString() ?? "N/A",
+    });
+  }
+
+  Widget _buildFilterBar() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          _buildFilterChip("All", 0),
+          _buildFilterChip("Upcoming", 1),
+          _buildFilterChip("Past", 2),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, int index) {
+    final isSelected = selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => selectedTabIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: isSelected ? Colors.black87 : Colors.black54,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(color: Colors.grey),
+      ),
     );
   }
 
@@ -927,6 +1350,30 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStatusBadge(String label) {
+    final normalized = label.toUpperCase();
+    final color = normalized == "UPCOMING"
+        ? Colors.blue
+        : normalized == "CONFIRMED"
+            ? Colors.green
+            : accent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        normalized,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
     );
   }
 }
