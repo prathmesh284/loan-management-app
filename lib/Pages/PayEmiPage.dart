@@ -4,23 +4,26 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:loan_management_app/Service/api_service.dart';
-import 'package:loan_management_app/Validators/form_validators.dart';
 
 class PayEmiPage extends StatefulWidget {
   final String loanId;
   final String customerId; // Added for receipt generation
-  final double totalLoanAmount;
+  final double remainingLoanAmount;
+  final double payableAmount;
   final int totalEmis;
   final int paidEmis;
+  final int remainingEmis;
   final String? nextEmiDate;
   
   const PayEmiPage({
     super.key,
     required this.loanId,
     required this.customerId,
-    required this.totalLoanAmount,
+    required this.remainingLoanAmount,
+    required this.payableAmount,
     required this.totalEmis,
     required this.paidEmis,
+    required this.remainingEmis,
     this.nextEmiDate,
   });
 
@@ -35,15 +38,17 @@ class _PayEmiPageState extends State<PayEmiPage> {
   final TextEditingController upiIdController = TextEditingController();
   final TextEditingController cashReferenceController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
-  late String generatedReceiptId; // Auto-generated receipt ID
+  String? generatedReceiptId; // Backend preview / final receipt ID
   String? lastPaymentLink;
   String? lastCustomerName;
   String? lastCustomerPhone;
   String? lastCustomerEmail;
 
   String get actionButtonLabel {
+    if (payableAmount <= 0 || widget.remainingEmis <= 0) {
+      return "No Payment Due";
+    }
     if (selectedMode != "RAZORPAY") {
       return "Confirm Payment";
     }
@@ -75,7 +80,6 @@ class _PayEmiPageState extends State<PayEmiPage> {
   @override
   void initState() {
     super.initState();
-    generatedReceiptId = generateReceiptId();
     _loadReceiptNumber();
   }
 
@@ -94,30 +98,18 @@ class _PayEmiPageState extends State<PayEmiPage> {
         }
       }
     } catch (_) {
-      // Keep local fallback if preview fetch fails.
+      // Keep backend generation as the source of truth if preview fetch fails.
     }
   }
 
-  String generateReceiptId() {
-    DateTime now = DateTime.now();
-    String yearMonth = '${now.year}${now.month.toString().padLeft(2, '0')}';
-    String digitsOnly = widget.customerId.replaceAll(RegExp(r'[^0-9]'), '');
-    String lastDigits = digitsOnly.isEmpty
-        ? '000'
-        : digitsOnly.substring(digitsOnly.length > 3 ? digitsOnly.length - 3 : 0);
-    String sequentialNo = '${widget.paidEmis + 1}'.padLeft(3, '0');
+  String get displayedReceiptId =>
+      generatedReceiptId?.isNotEmpty == true
+          ? generatedReceiptId!
+          : "Will be generated automatically";
 
-    return 'RECIPT-${yearMonth}_${widget.customerId}_${lastDigits}_$sequentialNo';
-  }
+  double roundCurrency(double value) => double.parse(value.toStringAsFixed(2));
 
-  // 💰 CALCULATE EMI AMOUNT
-  double get emiAmount {
-    if (widget.totalEmis <= 0) return 0;
-    return widget.totalLoanAmount / widget.totalEmis;
-  }
-
-  double get payableAmount => emiAmount;
-  double get totalAmount => emiAmount;
+  double get payableAmount => roundCurrency(widget.payableAmount);
 
   @override
   Widget build(BuildContext context) {
@@ -161,11 +153,13 @@ class _PayEmiPageState extends State<PayEmiPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                "Receipt ID (Auto-Generated)",
+                                "Receipt ID (Backend Preview)",
                                 style: TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               Text(
-                                generatedReceiptId,
+                                displayedReceiptId,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -180,7 +174,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                           icon: const Icon(Icons.copy, size: 18),
                           onPressed: () async {
                             await Clipboard.setData(
-                              ClipboardData(text: generatedReceiptId),
+                              ClipboardData(text: displayedReceiptId),
                             );
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -204,8 +198,8 @@ class _PayEmiPageState extends State<PayEmiPage> {
                     child: Column(
                       children: [
                         rowItem(
-                          "Total Loan Amount",
-                          "₹${widget.totalLoanAmount.toStringAsFixed(2)}",
+                          "Remaining Loan Amount",
+                          "₹${widget.remainingLoanAmount.toStringAsFixed(2)}",
                         ),
                         const SizedBox(height: 8),
                         rowItem(
@@ -214,8 +208,8 @@ class _PayEmiPageState extends State<PayEmiPage> {
                         ),
                         const SizedBox(height: 8),
                         rowItem(
-                          "Monthly EMI Amount",
-                          "₹${emiAmount.toStringAsFixed(2)}",
+                          "Remaining EMIs",
+                          "${widget.remainingEmis}",
                         ),
                         const SizedBox(height: 8),
                         const Divider(),
@@ -309,7 +303,9 @@ class _PayEmiPageState extends State<PayEmiPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isLoading ? null : handlePayment,
+                      onPressed: isLoading || payableAmount <= 0 || widget.remainingEmis <= 0
+                          ? null
+                          : handlePayment,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: gold,
                         foregroundColor: Colors.black87,
@@ -342,6 +338,14 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
   // ============= PAYMENT HANDLER =============
   void handlePayment() async {
+    if (payableAmount <= 0 || widget.remainingEmis <= 0) {
+      showErrorDialog(
+        "Payment Unavailable",
+        "This loan does not have a valid EMI amount due right now.",
+      );
+      return;
+    }
+
     if (selectedMethod == "CASH") {
       showCashPaymentConfirmation();
     } else if (selectedMethod == "UPI") {
@@ -366,44 +370,46 @@ class _PayEmiPageState extends State<PayEmiPage> {
             children: [
               const Text("Payment Details:", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Payable Amount:"),
-                  Text(
-                    "₹${payableAmount.toStringAsFixed(2)}",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ],
+              paymentDetailRow(
+                "Payable Amount:",
+                Text(
+                  "₹${payableAmount.toStringAsFixed(2)}",
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Receipt ID:"),
-                  Text(
-                    generatedReceiptId,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, fontFamily: 'monospace'),
+              paymentDetailRow(
+                "Receipt ID:",
+                Text(
+                  displayedReceiptId,
+                  textAlign: TextAlign.right,
+                  softWrap: true,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    fontFamily: 'monospace',
                   ),
-                ],
+                ),
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Reference #:"),
-                  Text(
-                    cashReferenceController.text,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ],
+              paymentDetailRow(
+                "Reference #:",
+                Text(
+                  cashReferenceController.text.isEmpty
+                      ? "Not provided"
+                      : cashReferenceController.text,
+                  textAlign: TextAlign.right,
+                  softWrap: true,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Payment Method:"),
-                  Container(
+              paymentDetailRow(
+                "Payment Method:",
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: gold.withOpacity(0.2),
@@ -411,10 +417,13 @@ class _PayEmiPageState extends State<PayEmiPage> {
                     ),
                     child: const Text(
                       "Cash",
-                      style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFecb613)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFecb613),
+                      ),
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
@@ -446,14 +455,14 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
     try {
       final apiService = Get.find<ApiService>();
+      final amountToPay = payableAmount;
 
       final body = {
         "loanId": int.parse(widget.loanId),
-        "amount": payableAmount,
+        "amount": amountToPay,
         "paymentMethod": "CASH",
         "paymentMode": "MANUAL",
         "remarks": remarksController.text,
-        "receiptNumber": generatedReceiptId,
         "generateReceipt": true,
       };
 
@@ -465,15 +474,20 @@ class _PayEmiPageState extends State<PayEmiPage> {
       debugPrint("📡 CASH PAYMENT STATUS: ${response.statusCode}");
       debugPrint("📦 CASH PAYMENT BODY: ${response.body}");
 
-        if (response.statusCode == 200) {
+      if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
+        if (jsonResponse is Map && jsonResponse['success'] == false) {
+          throw Exception(
+            jsonResponse['message']?.toString() ?? "Payment processing failed",
+          );
+        }
         final receiptNumber =
-            jsonResponse['receiptNumber']?.toString() ?? generatedReceiptId;
+            jsonResponse['receiptNumber']?.toString() ?? displayedReceiptId;
         setState(() => generatedReceiptId = receiptNumber);
 
         showSuccessDialog(
           "Payment Successful!",
-          "Receipt: $receiptNumber\n\nAmount Paid: ₹${payableAmount.toStringAsFixed(2)}",
+          "Receipt: $receiptNumber\n\nAmount Paid: ₹${amountToPay.toStringAsFixed(2)}",
         );
 
         Navigator.pop(context, {
@@ -501,16 +515,16 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
     try {
       final apiService = Get.find<ApiService>();
+      final amountToPay = payableAmount;
 
       final initiateBody = {
         "loanId": int.parse(widget.loanId),
-        "amount": payableAmount,
+        "amount": amountToPay,
         "customerId": widget.customerId,
         "gateway": "razorpay",
         "paymentMethod": selectedMethod,
         "upiApp": selectedUpiApp,
         "upiId": selectedMethod == "UPI" ? upiIdController.text : null,
-        "receiptNumber": generatedReceiptId,
       };
 
       final initiateResponse = await apiService.postRequest(
@@ -523,9 +537,14 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
       if (initiateResponse.statusCode == 200) {
         var responseData = jsonDecode(initiateResponse.body);
+        if (responseData is Map && responseData['success'] == false) {
+          throw Exception(
+            responseData['message']?.toString() ?? "Payment link was not created",
+          );
+        }
         final paymentLink = (responseData['paymentLink'] ?? "").toString();
         final receiptNumber =
-            responseData['receiptNumber']?.toString() ?? generatedReceiptId;
+            responseData['receiptNumber']?.toString() ?? displayedReceiptId;
         if (paymentLink.isEmpty) {
           throw Exception(responseData['message'] ?? "Payment link was not created");
         }
@@ -596,7 +615,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      "Receipt ID: $generatedReceiptId",
+                      "Receipt ID: $displayedReceiptId",
                       style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
                     ),
                     const SizedBox(height: 5),
@@ -662,7 +681,7 @@ class _PayEmiPageState extends State<PayEmiPage> {
   String buildPaymentShareMessage(String borrowerName, String paymentLink) {
     return "Hello $borrowerName, your EMI payment request of ₹${payableAmount.toStringAsFixed(2)} is ready. "
         "Please complete it using this secure Razorpay link: $paymentLink "
-        "Receipt ID: $generatedReceiptId";
+        "Receipt ID: $displayedReceiptId";
   }
 
   Future<void> shareOnWhatsApp(String phoneNumber, String message) async {
@@ -732,20 +751,42 @@ class _PayEmiPageState extends State<PayEmiPage> {
 
   Widget rowItem(String label, String value) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.black54, fontSize: 13),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Colors.black87,
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.black54, fontSize: 13),
           ),
         ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget paymentDetailRow(String label, Widget value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(child: value),
       ],
     );
   }
