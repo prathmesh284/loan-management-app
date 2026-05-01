@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:loan_management_app/Components/OtpVerificationDialog.dart';
 import 'package:loan_management_app/Service/api_service.dart';
 import 'package:loan_management_app/Validators/form_validators.dart';
 
@@ -63,17 +65,46 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
       setState(() => isLoading = false);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("🎉 Customer added successfully!"),
-            backgroundColor: Colors.green,
+        final Map<String, dynamic> payload = _decodeMap(response.body);
+        final verified = await OtpVerificationDialog.show(
+          context,
+          title: "Verify New Customer",
+          subtitle: "Confirm the borrower phone number before proceeding in the system.",
+          phoneNumber: phoneController.text.trim(),
+          onVerify: (otpCode) => apiService.postRequest(
+            "/api/customers/verify-otp",
+            {
+              "customerId": phoneController.text.trim(),
+              "otpCode": otpCode,
+            },
+          ),
+          onResend: () => apiService.postRequest(
+            "/api/customers/resend-otp",
+            {
+              "customerId": phoneController.text.trim(),
+            },
           ),
         );
-        Navigator.pop(context);
-      } else {
+
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Failed: ${response.statusCode}"),
+            content: Text(
+              verified
+                  ? "Customer added and verified successfully!"
+                  : (payload["message"]?.toString() ??
+                      "Customer added. OTP verification is pending."),
+            ),
+            backgroundColor: verified ? Colors.green : Colors.orange,
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        final payload = _decodeMap(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(payload["message"]?.toString() ?? "Failed: ${response.statusCode}"),
             backgroundColor: Colors.red,
           ),
         );
@@ -87,6 +118,16 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
         ),
       );
     }
+  }
+
+  Map<String, dynamic> _decodeMap(String body) {
+    try {
+      final parsed = jsonDecode(body);
+      if (parsed is Map<String, dynamic>) {
+        return parsed;
+      }
+    } catch (_) {}
+    return {"message": body};
   }
 
   // ---------------- BUILD UI -----------------

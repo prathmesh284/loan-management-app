@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:loan_management_app/Auth/LoginPage.dart';
+import 'package:loan_management_app/Components/OtpVerificationDialog.dart';
 import 'package:loan_management_app/Service/api_service.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -26,7 +28,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   String? gender;
   String? branch;
-  bool isEmailVerified = false;
   
   List<String> branches = [];
   bool isLoadingBranches = true;
@@ -275,27 +276,20 @@ class _SignUpPageState extends State<SignUpPage> {
                   },
                 ),
 
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() => isEmailVerified = true);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Verification email sent!"),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      isEmailVerified ? "Email Verified ✓" : "Verify Email",
-                      style: TextStyle(
-                        color: isEmailVerified
-                            ? Colors.green
-                            : Colors.orangeAccent,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.5,
-                      ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDF4D3),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE8CB6F)),
+                  ),
+                  child: const Text(
+                    "Phone OTP verification will appear right after signup.",
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -451,7 +445,9 @@ class _SignUpPageState extends State<SignUpPage> {
                       style: TextStyle(fontSize: 11.5, color: Colors.black54),
                     ),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        Get.offAll(() => const LoginPage());
+                      },
                       child: const Text(
                         "Login",
                         style: TextStyle(
@@ -611,41 +607,62 @@ class _SignUpPageState extends State<SignUpPage> {
         debugPrint('📦 [SIGNUP] Response: ${response.body}');
         
         try {
-          // Save user ID to SharedPreferences for dashboard
           final Map<String, dynamic> responseData = jsonDecode(response.body);
-          final int userId = responseData['id'] ?? 0;
-          final int branchId = responseData['branch']?['id'] ?? 1;
-          
-          debugPrint('💾 [SIGNUP] Storing user data - userId: $userId, branchId: $branchId');
-          
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('user_id', userId);
-          await prefs.setInt('branch_id', branchId);
-          await prefs.setString('username', _usernameController.text.trim());
-          
-          debugPrint('✅ [SIGNUP] User data stored successfully');
-          
+          final dynamic user = responseData['user'];
+          final String phoneNumber =
+              user is Map<String, dynamic> ? (user['phoneNumber'] ?? '').toString() : _phoneController.text.trim();
+
           if (!mounted) {
-            debugPrint('⚠️ [SIGNUP] Widget unmounted, cannot show success message');
+            debugPrint('⚠️ [SIGNUP] Widget unmounted, cannot continue OTP flow');
             return;
           }
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("✅ Account created successfully!"),
-              backgroundColor: Colors.green,
+
+          final verified = await OtpVerificationDialog.show(
+            context,
+            title: "Verify Team Access",
+            subtitle: "Secure this new staff account with one quick OTP check.",
+            phoneNumber: phoneNumber,
+            onVerify: (otpCode) => apiService.publicPostRequest(
+              '/api/auth/verify-otp',
+              {
+                'phoneNumber': phoneNumber,
+                'otpCode': otpCode,
+              },
+            ),
+            onResend: () => apiService.publicPostRequest(
+              '/api/auth/resend-otp',
+              {
+                'phoneNumber': phoneNumber,
+              },
             ),
           );
-          
-          debugPrint('🎯 [SIGNUP] Navigating to dashboard with branchId: $branchId');
-          // Navigate to dashboard
-          Get.offAllNamed('/dashboard', arguments: {'branchId': branchId});
+
+          if (!mounted) return;
+
+          if (verified) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('username', _usernameController.text.trim());
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("✅ Account verified successfully. Please login."),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Get.offAll(() => const LoginPage());
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Account created, but OTP verification is still pending."),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
         } catch (parseError) {
           debugPrint('❌ [SIGNUP] Error parsing signup response: $parseError');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("⚠️ Signup completed but error parsing response: $parseError"),
+                content: Text("⚠️ Signup completed but response parsing failed: $parseError"),
                 backgroundColor: Colors.orange,
               ),
             );

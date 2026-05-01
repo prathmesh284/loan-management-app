@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import 'package:loan_management_app/Components/OtpVerificationDialog.dart';
 import 'package:loan_management_app/Service/api_service.dart';
 import 'package:loan_management_app/Validators/form_validators.dart';
 
@@ -48,6 +49,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
   bool isLoadingCustomer = false;
   String? customerError;
   bool _isPopulatingCustomer = false;
+  bool _customerPhoneVerified = false;
 
   @override
   void initState() {
@@ -96,6 +98,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
             idController.text = customerData['customerId'] ?? '';
             nameController.text = customerData['name'] ?? '';
             addressController.text = customerData['address'] ?? '';
+            _customerPhoneVerified = customerData['isPhoneVerified'] == true;
             isLoadingCustomer = false;
           });
           _isPopulatingCustomer = false;
@@ -105,6 +108,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
             customerError = 'Customer not found for this Customer ID.';
             nameController.clear();
             addressController.clear();
+            _customerPhoneVerified = false;
             isLoadingCustomer = false;
           });
         }
@@ -116,6 +120,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
           customerError = 'Error fetching customer details';
           nameController.clear();
           addressController.clear();
+          _customerPhoneVerified = false;
           isLoadingCustomer = false;
         });
       }
@@ -124,12 +129,14 @@ class _NewLoanPageState extends State<NewLoanPage> {
         customerError = null;
         nameController.clear();
         addressController.clear();
+        _customerPhoneVerified = false;
       });
     } else {
       setState(() {
         customerError = null;
         nameController.clear();
         addressController.clear();
+        _customerPhoneVerified = false;
       });
     }
   }
@@ -220,6 +227,31 @@ class _NewLoanPageState extends State<NewLoanPage> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                if (nameController.text.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _customerPhoneVerified
+                          ? Colors.green.withOpacity(0.12)
+                          : Colors.orange.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _customerPhoneVerified ? Colors.green : Colors.orange,
+                      ),
+                    ),
+                    child: Text(
+                      _customerPhoneVerified
+                          ? "Customer phone is verified and ready for loan creation."
+                          : "Customer phone is not verified. OTP confirmation will be required.",
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: _customerPhoneVerified ? Colors.green.shade800 : Colors.orange.shade900,
                       ),
                     ),
                   ),
@@ -390,6 +422,41 @@ class _NewLoanPageState extends State<NewLoanPage> {
 
     try {
       final apiService = Get.find<ApiService>();
+      if (!_customerPhoneVerified) {
+        final verified = await OtpVerificationDialog.show(
+          context,
+          title: "Verify Before Loan",
+          subtitle: "Approve this loan only after the borrower confirms OTP on their phone.",
+          phoneNumber: idController.text.trim(),
+          onVerify: (otpCode) => apiService.postRequest(
+            "/api/customers/verify-otp",
+            {
+              "customerId": idController.text.trim(),
+              "otpCode": otpCode,
+            },
+          ),
+          onResend: () => apiService.postRequest(
+            "/api/customers/resend-otp",
+            {
+              "customerId": idController.text.trim(),
+            },
+          ),
+        );
+
+        if (!verified) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Loan creation stopped because OTP verification is pending."),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        setState(() => _customerPhoneVerified = true);
+      }
+
       final response = await apiService.postRequest("/api/loans/add", loanData);
       
       debugPrint('📥 [LOAN] Response status: ${response.statusCode}');
@@ -399,7 +466,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
         debugPrint('✅ [LOAN] Loan created successfully');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Loan created successfully!"),
+            content: Text("Loan created successfully. Customer notified by SMS."),
             backgroundColor: Colors.green,
           ),
         );
