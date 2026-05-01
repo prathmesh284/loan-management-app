@@ -4,6 +4,23 @@ import 'package:get/get.dart';
 import 'package:loan_management_app/Pages/PayEmiPage.dart';
 import 'package:loan_management_app/Service/api_service.dart';
 
+const Color kGoldAccent = Color(0xFFecb613);
+const Color kGoldDeep = Color(0xFF8A6D12);
+const Color kGoldMid = Color(0xFFB6911A);
+const Color kGoldSoft = Color(0xFFF7E8A4);
+const Color kGoldCream = Color(0xFFFFF7D7);
+const Color kPageBg = Color(0xFFF8F8F6);
+const Color kCardBg = Color(0xFFFFFCF0);
+const Color kAvatarBg = Color(0xFFFAF6E8);
+const Color kMutedText = Color(0xFF7A7464);
+const Color kBorderSoft = Color(0xFFE5D8AE);
+const Color kDarkText = Color(0xFF2C2412);
+const Color kHeroDark = Color(0xFF3F320B);
+const Color kHeroMid = Color(0xFF7A6216);
+const Color kShadowGold = Color(0x1A8A6D12);
+const Color kHeroTextSoft = Color(0xFFF5E9B8);
+const Color kHeroOverlay = Color(0x26FFF7D7);
+
 class CustomerDetailsPage extends StatefulWidget {
   final String customerId;
   final String name;
@@ -177,19 +194,19 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F6),
+      backgroundColor: kPageBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: kCardBg,
         elevation: 0.2,
         title: Text(
           widget.name,
           style: const TextStyle(
-            color: Colors.black87,
+            color: kDarkText,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: const IconThemeData(color: kDarkText),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -260,13 +277,13 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       children: [
         CircleAvatar(
           radius: 32,
-          backgroundColor: const Color(0xFFFAF6E8),
+          backgroundColor: kAvatarBg,
           child: Text(
             name.isNotEmpty ? name[0].toUpperCase() : "?",
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 24,
-              color: Colors.black87,
+              color: kDarkText,
             ),
           ),
         ),
@@ -285,7 +302,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               const SizedBox(height: 4),
               Text(
                 widget.customerId,
-                style: const TextStyle(color: Colors.grey),
+                      style: const TextStyle(color: kMutedText),
               ),
             ],
           ),
@@ -305,9 +322,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,11 +354,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             children: [
               buildTag(
                 isVerified ? "Phone Verified" : "Phone Not Verified",
-                isVerified ? Colors.green : Colors.orange,
+                isVerified ? kGoldDeep : kGoldAccent,
               ),
               buildTag(
                 isWhatsappOptIn ? "WhatsApp Opt-In" : "WhatsApp Opt-Out",
-                isWhatsappOptIn ? Colors.blue : Colors.grey,
+                isWhatsappOptIn ? kGoldAccent : kMutedText,
               ),
             ],
           ),
@@ -401,9 +418,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,7 +436,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               Text(
                 loan['status']?.toString() ?? "UNKNOWN",
                 style: const TextStyle(
-                  color: Color(0xFFecb613),
+                  color: kGoldAccent,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -437,8 +454,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              color: const Color(0xFFecb613),
-              backgroundColor: Colors.grey.shade300,
+              color: kGoldAccent,
+              backgroundColor: kGoldSoft,
             ),
           ),
         ],
@@ -458,9 +475,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,8 +527,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                       }
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFecb613),
-                foregroundColor: Colors.black87,
+                backgroundColor: kGoldAccent,
+                foregroundColor: kDarkText,
               ),
               child: const Text("Pay EMI"),
             ),
@@ -525,13 +542,13 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Text(
         message,
-        style: const TextStyle(color: Colors.grey),
+        style: const TextStyle(color: kMutedText),
       ),
     );
   }
@@ -543,7 +560,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            style: const TextStyle(color: kMutedText, fontSize: 13),
           ),
         ),
         const SizedBox(width: 12),
@@ -552,7 +569,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             value,
             textAlign: TextAlign.right,
             style: const TextStyle(
-              color: Colors.black87,
+              color: kDarkText,
               fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
@@ -581,7 +598,7 @@ class CustomerLoanDetailsPage extends StatefulWidget {
 
 class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
   int selectedTabIndex = 0;
-  static const Color accent = Color(0xFFecb613);
+  static const Color accent = kGoldAccent;
 
   double toDouble(dynamic val) {
     if (val == null) return 0;
@@ -628,10 +645,10 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F6),
+      backgroundColor: kPageBg,
       appBar: AppBar(
         title: Text("${widget.customerName} Loans"),
-        backgroundColor: Colors.white,
+        backgroundColor: kCardBg,
         elevation: 0.2,
       ),
       body: ListView(
@@ -657,12 +674,12 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
           return Container(
               margin: const EdgeInsets.only(bottom: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kCardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: kBorderSoft),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: kShadowGold,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -676,7 +693,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
                     decoration: const BoxDecoration(
                       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                       gradient: LinearGradient(
-                        colors: [Color(0xFFF7E8A4), Color(0xFFFFF7D7)],
+                        colors: [kGoldSoft, kGoldCream],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -774,7 +791,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1F1A0D), Color(0xFF5C4914)],
+          colors: [kHeroDark, kHeroMid],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -786,7 +803,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
           const Text(
             "Loan Portfolio",
             style: TextStyle(
-              color: Colors.white,
+              color: kCardBg,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -794,7 +811,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
           const SizedBox(height: 6),
           Text(
             "${widget.loans.length} total loans for ${widget.customerName}",
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: kHeroTextSoft),
           ),
           const SizedBox(height: 14),
           Row(
@@ -815,7 +832,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: kHeroOverlay,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -823,7 +840,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: kCardBg,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -831,7 +848,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(color: kHeroTextSoft, fontSize: 12),
           ),
         ],
       ),
@@ -842,9 +859,9 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Row(
         children: [
@@ -874,7 +891,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.w700,
-              color: isSelected ? Colors.black87 : Colors.black54,
+              color: isSelected ? kDarkText : kMutedText,
               fontSize: 12,
             ),
           ),
@@ -887,13 +904,13 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Text(
         message,
-        style: const TextStyle(color: Colors.grey),
+        style: const TextStyle(color: kMutedText),
       ),
     );
   }
@@ -904,7 +921,7 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: Colors.grey),
+            style: const TextStyle(color: kMutedText),
           ),
         ),
         const SizedBox(width: 12),
@@ -922,10 +939,10 @@ class _CustomerLoanDetailsPageState extends State<CustomerLoanDetailsPage> {
   Widget _buildStatusPill(String label) {
     final normalized = label.toUpperCase();
     final color = normalized == "ACTIVE"
-        ? const Color(0xFF8A6D12)
+        ? kGoldDeep
         : normalized == "CLOSED"
-            ? Colors.green
-            : Colors.orange;
+            ? kGoldMid
+            : kGoldAccent;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -965,7 +982,7 @@ class CustomerEmiDetailsPage extends StatefulWidget {
 class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
   bool isLoading = true;
   int selectedTabIndex = 0;
-  static const Color accent = Color(0xFFecb613);
+  static const Color accent = kGoldAccent;
   List<Map<String, dynamic>> receiptHistory = [];
   final apiService = Get.find<ApiService>();
 
@@ -1072,10 +1089,10 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F6),
+      backgroundColor: kPageBg,
       appBar: AppBar(
         title: Text("${widget.customerName} EMI Details"),
-        backgroundColor: Colors.white,
+        backgroundColor: kCardBg,
         elevation: 0.2,
       ),
       body: isLoading
@@ -1112,7 +1129,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F1C26), Color(0xFF224152)],
+          colors: [kHeroDark, kHeroMid],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1124,7 +1141,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
           const Text(
             "EMI Timeline",
             style: TextStyle(
-              color: Colors.white,
+              color: kCardBg,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -1132,7 +1149,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
           const SizedBox(height: 6),
           Text(
             "Upcoming and past EMI records for ${widget.customerName}",
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: kHeroTextSoft),
           ),
           const SizedBox(height: 14),
           Row(
@@ -1153,7 +1170,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: kHeroOverlay,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -1161,7 +1178,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: kCardBg,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -1169,7 +1186,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(color: kHeroTextSoft, fontSize: 12),
           ),
         ],
       ),
@@ -1181,12 +1198,12 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: kShadowGold,
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1199,10 +1216,10 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              gradient: LinearGradient(
-                colors: isUpcoming
-                    ? const [Color(0xFFDDF3FF), Color(0xFFF6FBFF)]
-                    : const [Color(0xFFF7E8A4), Color(0xFFFFF7D7)],
+              gradient: const LinearGradient(
+                colors: [kGoldSoft, kGoldCream],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
             child: Row(
@@ -1210,7 +1227,10 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
                 Expanded(
                   child: Text(
                     item['title']?.toString() ?? "EMI",
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: kDarkText,
+                    ),
                   ),
                 ),
                 _buildStatusBadge(item['status']?.toString() ?? "N/A"),
@@ -1280,9 +1300,9 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Row(
         children: [
@@ -1311,7 +1331,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.w700,
-              color: isSelected ? Colors.black87 : Colors.black54,
+              color: isSelected ? kDarkText : kMutedText,
               fontSize: 12,
             ),
           ),
@@ -1324,13 +1344,13 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kCardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: kBorderSoft),
       ),
       child: Text(
         message,
-        style: const TextStyle(color: Colors.grey),
+        style: const TextStyle(color: kMutedText),
       ),
     );
   }
@@ -1339,7 +1359,7 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
     return Row(
       children: [
         Expanded(
-          child: Text(label, style: const TextStyle(color: Colors.grey)),
+          child: Text(label, style: const TextStyle(color: kMutedText)),
         ),
         const SizedBox(width: 12),
         Flexible(
@@ -1356,10 +1376,10 @@ class _CustomerEmiDetailsPageState extends State<CustomerEmiDetailsPage> {
   Widget _buildStatusBadge(String label) {
     final normalized = label.toUpperCase();
     final color = normalized == "UPCOMING"
-        ? Colors.blue
+        ? kGoldDeep
         : normalized == "CONFIRMED"
-            ? Colors.green
-            : accent;
+            ? kGoldAccent
+            : kGoldMid;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
