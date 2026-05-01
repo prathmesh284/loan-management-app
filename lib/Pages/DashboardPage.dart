@@ -22,6 +22,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Map<String, dynamic>? _dashboardStats;
   Map<String, dynamic>? _goldData;
   String? _branchName;
+  List<dynamic> _upcomingPayments = [];
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -37,8 +38,9 @@ class _DashboardPageState extends State<DashboardPage> {
       final goldFuture = _loadGoldPrice();
       final statsFuture = _loadDashboardStats();
       final branchFuture = _loadBranchName();
+      final upcomingPaymentsFuture = _loadUpcomingPayments();
 
-      await Future.wait([goldFuture, statsFuture, branchFuture]);
+      await Future.wait([goldFuture, statsFuture, branchFuture, upcomingPaymentsFuture]);
 
       if (mounted) {
         setState(() {
@@ -128,6 +130,32 @@ class _DashboardPageState extends State<DashboardPage> {
           'pendingEmis': 0,
           'overdueEmis': 0,
         };
+      });
+    }
+  }
+
+  Future<void> _loadUpcomingPayments() async {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.getRequest(
+        '/api/dashboard/loans-due-soon/${widget.branchId}?days=3',
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _upcomingPayments = jsonDecode(response.body) ?? [];
+        });
+      } else {
+        throw Exception('Failed to load upcoming payments: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error loading upcoming payments: $e');
+      if (!mounted) return;
+
+      setState(() {
+        _upcomingPayments = [];
       });
     }
   }
@@ -395,19 +423,40 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _paymentCard("Rohan Mehra", "23456", "₹ 5,000", "Jul 15"),
-                    _paymentCard("Sonia Gupta", "78901", "₹ 7,500", "Jul 20"),
+                    if (_upcomingPayments.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "No payments due in the next 3 days.",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.manrope(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      )
+                    else
+                      ..._upcomingPayments
+                          .take(5)
+                          .map((loan) => _paymentCard(Map<String, dynamic>.from(loan)))
+                          .toList(),
                     const SizedBox(height: 6),
-                    Center(
-                      child: Text(
-                        "View All Upcoming Payments",
-                        style: GoogleFonts.manrope(
-                          color: primaryColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                    if (_upcomingPayments.isNotEmpty)
+                      Center(
+                        child: Text(
+                          "Showing payments due in next 3 days",
+                          style: GoogleFonts.manrope(
+                            color: primaryColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -638,12 +687,18 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _paymentCard(
-    String name,
-    String customerId,
-    String amount,
-    String dueDate,
-  ) {
+  Widget _paymentCard(Map<String, dynamic> loan) {
+    final customer = loan['customer'] is Map
+        ? Map<String, dynamic>.from(loan['customer'])
+        : <String, dynamic>{};
+    final String name = customer['name']?.toString() ?? 'Customer';
+    final String customerId = customer['customerId']?.toString() ?? 'N/A';
+    final dynamic rawAmount = loan['emi'] ?? loan['loanAmount'] ?? 0;
+    final double amount = rawAmount is num
+        ? rawAmount.toDouble()
+        : double.tryParse(rawAmount.toString()) ?? 0;
+    final String dueDate = loan['nextEmiDate']?.toString() ?? 'N/A';
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -677,7 +732,7 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              amount,
+              '₹ ${amount.toStringAsFixed(2)}',
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,

@@ -17,6 +17,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
   List<dynamic> loansDueSoon = [];
   bool isLoading = true;
   String? errorMessage;
+  int selectedTabIndex = 0;
 
   double _toDouble(dynamic value) {
     if (value == null) return 0;
@@ -78,6 +79,10 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
     const Color primaryColor = Color(0xFFecb613);
     const Color bgLight = Color(0xFFF8F8F6);
     const Color textDark = Color(0xFF1e1e1e);
+    final bool showingRecent = selectedTabIndex == 0;
+    final List<dynamic> activeList = showingRecent ? recentLoans : loansDueSoon;
+    final Color activeAccentColor = showingRecent ? primaryColor : Colors.orange;
+    final IconData activeIcon = showingRecent ? Icons.trending_up : Icons.warning_amber;
 
     return Scaffold(
       backgroundColor: bgLight,
@@ -105,102 +110,168 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
                     style: const TextStyle(color: Colors.red, fontSize: 16),
                   ),
                 )
-              : SingleChildScrollView(
+              : Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Recent Loans Section
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          "Recent Loans",
-                          style: GoogleFonts.manrope(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: textDark,
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _buildHorizontalTab(
+                                label: "Recent",
+                                subtitle: "Latest loans",
+                                isSelected: showingRecent,
+                                onTap: () => setState(() => selectedTabIndex = 0),
+                                activeColor: primaryColor,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildHorizontalTab(
+                                label: "Loan Due Soon",
+                                subtitle: "Next 30 days",
+                                isSelected: !showingRecent,
+                                onTap: () => setState(() => selectedTabIndex = 1),
+                                activeColor: Colors.orange,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      if (recentLoans.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              "No recent loans",
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              showingRecent ? "Recent Loans" : "Loans Due Soon",
                               style: GoogleFonts.manrope(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              showingRecent
+                                  ? "Latest loan records for this branch"
+                                  : "Loans with upcoming EMI dates",
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
                                 color: Colors.grey.shade600,
-                                fontSize: 14,
                               ),
                             ),
-                          ),
-                        )
-                      else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: recentLoans.length,
-                          itemBuilder: (context, index) {
-                            final loan = recentLoans[index];
-                            return _buildLoanCard(
-                              loan,
-                              primaryColor,
-                              Icons.trending_up,
-                            );
-                          },
-                        ),
-                      const SizedBox(height: 20),
-
-                      // Loans Due Soon Section
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          "Loans Due Soon (Next 30 Days)",
-                          style: GoogleFonts.manrope(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: textDark,
-                          ),
+                            const SizedBox(height: 12),
+                            if (activeList.isEmpty)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    showingRecent ? "No recent loans" : "No loans due soon",
+                                    style: GoogleFonts.manrope(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: activeList.length,
+                                itemBuilder: (context, index) {
+                                  final loan = activeList[index];
+                                  return _buildLoanCard(
+                                    loan,
+                                    activeAccentColor,
+                                    activeIcon,
+                                  );
+                                },
+                              ),
+                          ],
                         ),
                       ),
-                      if (loansDueSoon.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              "No loans due soon",
-                              style: GoogleFonts.manrope(
-                                color: Colors.green.shade700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: loansDueSoon.length,
-                          itemBuilder: (context, index) {
-                            final loan = loansDueSoon[index];
-                            return _buildLoanCard(
-                              loan,
-                              Colors.orange,
-                              Icons.warning_amber,
-                            );
-                          },
-                        ),
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _buildHorizontalTab({
+    required String label,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Color activeColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withOpacity(0.14) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? activeColor : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.manrope(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? activeColor : const Color(0xFF1e1e1e),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: GoogleFonts.manrope(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
