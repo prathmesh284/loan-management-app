@@ -12,7 +12,7 @@ class ApiService extends GetxService {
   // Configure your backend URL here
   // For Lambda/AWS: use the API Gateway URL
   // For local testing: use http://localhost:8080
-  final String baseUrl = "https://d3yn3mj1fa.execute-api.ap-south-1.amazonaws.com/dev";
+  final String baseUrl = "https://j1x5hhjmxe.execute-api.ap-south-1.amazonaws.com/dev";
   static const int tokenRefreshThreshold = 300; // Refresh token 5 minutes before expiry
 
   @override
