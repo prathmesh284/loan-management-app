@@ -73,8 +73,15 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
       final response = await widget.onVerify(otpCode);
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (!mounted) return;
-        Navigator.of(context).pop(true);
+        if (payload['success'] == true) {
+          if (!mounted) return;
+          Navigator.of(context).pop(true);
+          return;
+        }
+
+        setState(() {
+          _message = payload['message']?.toString() ?? 'OTP verification failed.';
+        });
         return;
       }
 
@@ -99,12 +106,15 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
     try {
       final response = await widget.onResend();
       final payload = _decodeBody(response.body);
-      setState(() {
-        _message = payload['message']?.toString() ??
-            (response.statusCode >= 200 && response.statusCode < 300
-                ? 'OTP resent successfully.'
-                : 'Failed to resend OTP.');
-      });
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        setState(() {
+          _message = payload['message']?.toString() ?? 'OTP resent successfully.';
+        });
+      } else {
+        setState(() {
+          _message = payload['message']?.toString() ?? 'Failed to resend OTP.';
+        });
+      }
     } catch (e) {
       setState(() => _message = 'Could not resend OTP: $e');
     } finally {

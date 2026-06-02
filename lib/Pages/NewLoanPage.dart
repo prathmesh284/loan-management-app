@@ -15,6 +15,7 @@ class NewLoanPage extends StatefulWidget {
   final String? interestRate;
   final String? tenure;
   final double? loanAmount;
+  final double? maxEligibleLoan;
   final double? emi;
   final double? totalInterest;
   final double? totalAmount;
@@ -29,6 +30,7 @@ class NewLoanPage extends StatefulWidget {
     this.interestRate,
     this.tenure,
     this.loanAmount,
+    this.maxEligibleLoan,
     this.emi,
     this.totalInterest,
     this.totalAmount,
@@ -339,7 +341,11 @@ class _NewLoanPageState extends State<NewLoanPage> {
                 buildReadonlyRow("Interest Rate (%)", widget.interestRate),
                 buildReadonlyRow("Tenure (months)", widget.tenure),
                 buildReadonlyRow(
-                  "Eligible Loan (₹)",
+                  "Max Eligible Loan (₹)",
+                  widget.maxEligibleLoan?.toStringAsFixed(2)
+                ),
+                buildReadonlyRow(
+                  "Requested Loan (₹)",
                   widget.loanAmount?.toStringAsFixed(2)
                 ),
                 buildReadonlyRow(
@@ -434,6 +440,7 @@ class _NewLoanPageState extends State<NewLoanPage> {
       "ltv": double.tryParse(widget.ltv ?? '0') ?? 0.0,
       "interestRate": double.tryParse(widget.interestRate ?? '0') ?? 0.0,
       "tenure": int.tryParse(widget.tenure ?? '0') ?? 0,
+      "maxEligibleLoan": widget.maxEligibleLoan ?? 0.0,
       "loanAmount": widget.loanAmount ?? 0.0,
       "emi": widget.emi ?? 0.0,
       "totalInterest": widget.totalInterest ?? 0.0,

@@ -15,6 +15,7 @@ class EmiCalculatorPage extends StatefulWidget {
 class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
   final TextEditingController weightController = TextEditingController();
   final TextEditingController goldPriceController = TextEditingController();
+  final TextEditingController requestedLoanController = TextEditingController();
   final TextEditingController interestController = TextEditingController();
   final TextEditingController tenureController = TextEditingController();
   final TextEditingController ltvController = TextEditingController();
@@ -22,6 +23,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
   String goldPurity = "22K";  // Gold purity: 22K, 23K, 24K
   String goldItemType = "Ring";  // Gold item type: Ring, Necklace, etc.
   String priceUnit = "per gram"; // "per gram" or "per kg"
+  double maxLoanAmount = 0.0;
   double loanAmount = 0.0;
   double monthlyEmi = 0.0;
   double totalInterest = 0.0;
@@ -81,15 +83,40 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
       // Normalize goldPrice to per gram
       // weight is in grams, so if price is per kg, convert to per gram
       final double pricePerGram = priceUnit == "per kg" ? goldPrice / 1000 : goldPrice;
-      
       final double eligibleLoan = weight * pricePerGram * (ltv / 100);
-      final double emi = (eligibleLoan * rate * pow(1 + rate, months)) /
+      final double requestedLoan = double.tryParse(requestedLoanController.text) ?? eligibleLoan;
+
+      if (requestedLoan <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Requested loan amount must be greater than zero."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (requestedLoan > eligibleLoan) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Requested loan amount cannot exceed eligible maximum of ₹${eligibleLoan.toStringAsFixed(2)}.",
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final double loanPrincipal = requestedLoan;
+      final double emi = (loanPrincipal * rate * pow(1 + rate, months)) /
           (pow(1 + rate, months) - 1);
       final double totalPayment = emi * months;
-      final double interest = totalPayment - eligibleLoan;
+      final double interest = totalPayment - loanPrincipal;
 
       setState(() {
-        loanAmount = eligibleLoan;
+        maxLoanAmount = eligibleLoan;
+        loanAmount = loanPrincipal;
         monthlyEmi = emi;
         totalInterest = interest;
         totalAmount = totalPayment;
@@ -143,6 +170,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                   ltv: ltvController.text,
                   interestRate: interestController.text,
                   tenure: tenureController.text,
+                  maxEligibleLoan: maxLoanAmount,
                   loanAmount: loanAmount,
                   emi: monthlyEmi,
                   totalInterest: totalInterest,
@@ -262,6 +290,9 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
             buildSectionCard(
               title: "Loan Details",
               children: [
+                buildTextField(requestedLoanController, "Requested Loan Amount (₹)",
+                    type: TextInputType.number),
+                const SizedBox(height: 10),
                 buildTextField(interestController, "Interest Rate (% per annum)",
                     type: TextInputType.number),
                 const SizedBox(height: 10),
@@ -301,7 +332,8 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                 children: [
                   buildResultRow("Gold Item Type", goldItemType),
                   buildResultRow("Gold Purity", goldPurity),
-                  buildResultRow("Eligible Loan Amount", "₹ ${loanAmount.toStringAsFixed(2)}"),
+                  buildResultRow("Max Eligible Loan", "₹ ${maxLoanAmount.toStringAsFixed(2)}"),
+                  buildResultRow("Requested Loan Amount", "₹ ${loanAmount.toStringAsFixed(2)}"),
                   buildResultRow("Monthly EMI", "₹ ${monthlyEmi.toStringAsFixed(2)}"),
                   buildResultRow("Total Interest", "₹ ${totalInterest.toStringAsFixed(2)}"),
                   buildResultRow("Total Payable", "₹ ${totalAmount.toStringAsFixed(2)}"),

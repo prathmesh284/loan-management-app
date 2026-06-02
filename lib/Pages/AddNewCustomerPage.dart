@@ -66,6 +66,33 @@ class _AddNewCustomerPageState extends State<AddNewCustomerPage> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> payload = _decodeMap(response.body);
+
+        if (payload["success"] != true) {
+          final errorMessage = payload["message"]?.toString() ??
+              payload["otp"]?["message"]?.toString() ??
+              "Customer created, but OTP could not be sent.";
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        if (payload["otp"] is Map<String, dynamic> &&
+            payload["otp"]["success"] != true) {
+          final otpError = payload["otp"]["message"]?.toString() ??
+              "OTP could not be sent. Please try again.";
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(otpError),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
         final verified = await OtpVerificationDialog.show(
           context,
           title: "Verify New Customer",
