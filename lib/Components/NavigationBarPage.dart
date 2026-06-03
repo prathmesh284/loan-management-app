@@ -125,10 +125,6 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
       body: _pageBuilders[_selectedIndex](),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: primaryColor,
-        backgroundColor: const Color.fromARGB(255, 57, 48, 23),
-        unselectedItemColor: Colors.grey.shade600,
-        showUnselectedLabels: true,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: [

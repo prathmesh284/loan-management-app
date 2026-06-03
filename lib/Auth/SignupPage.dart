@@ -231,7 +231,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      branchError!,
+                      'Unable to load shop list. Please try again.',
                       style: const TextStyle(color: Colors.red, fontSize: 12),
                     ),
                   )
@@ -502,10 +502,13 @@ class _SignUpPageState extends State<SignUpPage> {
 
   InputDecoration _inputDecorationDropBox(String label) {
     return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(fontSize: 12.5, color: Colors.black87, fontWeight: FontWeight.w500),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       hintText: label,
       hintStyle: const TextStyle(
         fontSize: 12.5,
-        color: Colors.black54,
+        color: Colors.black87,
         fontWeight: FontWeight.w400,
       ),
       filled: true,
@@ -532,10 +535,13 @@ class _SignUpPageState extends State<SignUpPage> {
 
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(fontSize: 12.5, color: Colors.black87, fontWeight: FontWeight.w500),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       hintText: label,
       hintStyle: const TextStyle(
         fontSize: 12.5,
-        color: Colors.black45,
+        color: Colors.black87,
         fontWeight: FontWeight.w400,
       ),
       filled: true,
@@ -557,6 +563,8 @@ class _SignUpPageState extends State<SignUpPage> {
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
       ),
+        errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+        errorMaxLines: 2,
     );
   }
 

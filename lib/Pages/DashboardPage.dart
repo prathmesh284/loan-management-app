@@ -330,7 +330,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: _buildStatCard(
-                            'active_loans'.tr,
+                            'Active Loans'.tr,
                             (_dashboardStats?['activeLoanCount'] ?? 0).toString(),
                             primaryColor,
                             textDark,

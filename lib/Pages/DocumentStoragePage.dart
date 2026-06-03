@@ -517,7 +517,7 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: primaryColor.withOpacity(0.08),
               borderRadius: BorderRadius.circular(16),
@@ -538,6 +538,7 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: isSearching ? null : () => searchCustomerById(),
                   style: ElevatedButton.styleFrom(

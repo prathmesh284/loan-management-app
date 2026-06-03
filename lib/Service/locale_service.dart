@@ -86,7 +86,7 @@ class TranslationService extends Translations {
           'gold_item_type': 'Gold Item Type',
           'gold_weight_grams': 'Gold Weight (grams)',
           'price_unit': 'Price Unit',
-          'gold_price': 'Gold Price ({0}) (₹)',
+          'gold_price': 'Gold Price (₹)',
           'gold_purity_22k': '22K (91.6% Pure)',
           'gold_purity_23k': '23K (95.8% Pure)',
           'gold_purity_24k': '24K (99.9% Pure)',

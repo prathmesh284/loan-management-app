@@ -62,26 +62,97 @@ class GoldLoanApp extends StatelessWidget {
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFFF2B90D),
+        seedColor: const Color(0xFFFBBF24),
         brightness: Brightness.light,
-        primary: const Color(0xFFF2B90D),
-        surface: const Color(0xFFFFFCF4),
+        primary: const Color(0xFFFBBF24),
+        onPrimary: Colors.black,
+        secondary: const Color(0xFF0E4C92),
+        onSecondary: Colors.white,
+        surface: Colors.white,
+        onSurface: const Color(0xFF0F172A),
+        tertiary: const Color(0xFF0E4C92),
+        error: const Color(0xFFB91C1C),
+        onError: Colors.white,
       ),
-      scaffoldBackgroundColor: const Color(0xFFF8F8F5),
-      textTheme: GoogleFonts.manropeTextTheme(),
+      scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+      textTheme: GoogleFonts.manropeTextTheme(
+        ThemeData.light().textTheme,
+      ).apply(
+        bodyColor: const Color(0xFF0F172A),
+        displayColor: const Color(0xFF0F172A),
+      ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF8F8F5),
-        foregroundColor: Colors.black87,
+        backgroundColor: Color(0xFF0F172A),
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
-      cardTheme: const CardThemeData(
-        color: Colors.white,
-        elevation: 0,
-        margin: EdgeInsets.zero,
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Color(0xFF0F172A),
+        selectedItemColor: Color(0xFFFBBF24),
+        unselectedItemColor: Colors.white70,
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w400),
+        showUnselectedLabels: true,
       ),
-      snackBarTheme: const SnackBarThemeData(
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        hintStyle: const TextStyle(color: Color(0xA6000000)),
+        labelStyle: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF0E4C92), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFB91C1C), width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFB91C1C), width: 1.5),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFBBF24),
+          foregroundColor: Colors.black,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 4,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF0F172A),
+          side: const BorderSide(color: Color(0xFF0F172A), width: 1.2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF0F172A),
+        contentTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        margin: EdgeInsets.zero,
       ),
     );
 
