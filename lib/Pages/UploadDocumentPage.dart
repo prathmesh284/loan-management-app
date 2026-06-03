@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -196,6 +195,7 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
 
       if (response.statusCode == 201) {
         Get.snackbar("Success", "Document uploaded");
+        if (!mounted) return;
         Navigator.pop(context, true);
       } else {
         Get.snackbar("Error", "Upload failed: $responseBody");
@@ -244,9 +244,9 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          "Upload Document",
-          style: TextStyle(color: Colors.black87),
+        title: Text(
+          'upload_document'.tr,
+          style: const TextStyle(color: Colors.black87),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
@@ -271,24 +271,24 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Find Customer",
-                            style: TextStyle(
+                          Text(
+                            'find_customer'.tr,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
-                            "Enter customer phone number and fetch details before uploading.",
-                            style: TextStyle(
+                          Text(
+                            'find_customer_description'.tr,
+                            style: const TextStyle(
                               fontSize: 13,
                               color: Colors.black54,
                             ),
                           ),
                           const SizedBox(height: 16),
                           buildTextField(
-                            label: "Customer Phone",
+                            label: 'customer_phone'.tr,
                             controller: customerIdController,
                             keyboardType: TextInputType.phone,
                             suffixIcon: isLoadingCustomer
@@ -313,12 +313,12 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
                             },
                           ),
                           buildTextField(
-                            label: "Customer Name",
+                            label: 'customer_name'.tr,
                             controller: customerNameController,
                             readOnly: true,
                           ),
                           buildTextField(
-                            label: "Address",
+                            label: 'address'.tr,
                             controller: customerAddressController,
                             readOnly: true,
                           ),
@@ -371,7 +371,7 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      fileName ?? "Select File",
+                                      fileName ?? 'select_file'.tr,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(color: primaryColor),
                                     ),
@@ -404,7 +404,7 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
                                         strokeWidth: 2.4,
                                       ),
                                     )
-                                  : const Text("Upload Document"),
+                                  : Text('upload_document'.tr),
                             ),
                           ),
                         ],

@@ -25,6 +25,7 @@ void main() {
     await tester.pumpWidget(GoldLoanApp(
       isLoggedIn: token != null && token.isNotEmpty,
       branchId: branchId,
+      initialLocale: const Locale('en', 'US'),
     ));
 
     // Verify that our counter starts at 0.

@@ -61,14 +61,14 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
         });
       } else {
         setState(() {
-          errorMessage = 'Failed to load loan history';
+          errorMessage = 'failed_to_load_loan_history'.tr;
           isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('❌ Error fetching loan history: $e');
       setState(() {
-        errorMessage = 'Error: $e';
+        errorMessage = 'error_loading_loan_history'.trArgs([e.toString()]);
         isLoading = false;
       });
     }
@@ -90,7 +90,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
         elevation: 0,
         backgroundColor: bgLight.withOpacity(0.9),
         title: Text(
-          "Loan History",
+          'loan_history'.tr,
           style: GoogleFonts.manrope(
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -132,8 +132,8 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
                           children: [
                             Expanded(
                               child: _buildHorizontalTab(
-                                label: "Recent",
-                                subtitle: "Latest loans",
+                                label: 'recent'.tr,
+                                subtitle: 'latest_loans'.tr,
                                 isSelected: showingRecent,
                                 onTap: () => setState(() => selectedTabIndex = 0),
                                 activeColor: primaryColor,
@@ -142,8 +142,8 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _buildHorizontalTab(
-                                label: "Loan Due Soon",
-                                subtitle: "Next 30 days",
+                                label: 'loan_due_soon'.tr,
+                                subtitle: 'next_30_days'.tr,
                                 isSelected: !showingRecent,
                                 onTap: () => setState(() => selectedTabIndex = 1),
                                 activeColor: Colors.orange,
@@ -170,7 +170,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              showingRecent ? "Recent Loans" : "Loans Due Soon",
+                              showingRecent ? 'recent_loans'.tr : 'loans_due_soon'.tr,
                               style: GoogleFonts.manrope(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
@@ -180,8 +180,8 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
                             const SizedBox(height: 4),
                             Text(
                               showingRecent
-                                  ? "Latest loan records for this branch"
-                                  : "Loans with upcoming EMI dates",
+                                  ? 'latest_loan_records'.tr
+                                  : 'upcoming_emi_loans'.tr,
                               style: GoogleFonts.manrope(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
@@ -198,7 +198,7 @@ class _LoanHistoryPageState extends State<LoanHistoryPage> {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    showingRecent ? "No recent loans" : "No loans due soon",
+                                    showingRecent ? 'no_recent_loans'.tr : 'no_loans_due_soon'.tr,
                                     style: GoogleFonts.manrope(
                                       color: Colors.grey.shade600,
                                       fontSize: 14,

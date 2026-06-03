@@ -5,6 +5,7 @@ import 'package:loan_management_app/Pages/GoldLoanLandingPage.dart';
 import 'package:loan_management_app/Auth/LoginPage.dart';
 import 'package:loan_management_app/Components/NavigationBarPage.dart';
 import 'package:loan_management_app/Service/api_service.dart';
+import 'package:loan_management_app/Service/locale_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
@@ -34,20 +35,25 @@ Future<void> main() async {
     }
   }
 
+  final initialLocale = await TranslationService.loadSavedLocale();
+
   runApp(GoldLoanApp(
     isLoggedIn: isLoggedIn,
     branchId: branchId,
+    initialLocale: initialLocale,
   ));
 }
 
 class GoldLoanApp extends StatelessWidget {
   final bool isLoggedIn;
   final int branchId;
+  final Locale initialLocale;
   
   const GoldLoanApp({
     super.key,
     required this.isLoggedIn,
     required this.branchId,
+    required this.initialLocale,
   });
 
   @override
@@ -81,6 +87,9 @@ class GoldLoanApp extends StatelessWidget {
 
     return GetMaterialApp(
       title: 'Gold Loan Management',
+      translations: TranslationService(),
+      locale: initialLocale,
+      fallbackLocale: TranslationService.fallbackLocale,
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.light,
       theme: baseTheme,

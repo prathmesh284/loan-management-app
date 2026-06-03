@@ -506,14 +506,14 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Search By Customer ID",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            'search_by_customer_id'.tr,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
-          const Text(
-            "Enter phone number to fetch customer and view all uploaded documents.",
-            style: TextStyle(fontSize: 13, color: Colors.black54),
+          Text(
+            'search_by_customer_id_description'.tr,
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
           ),
           const SizedBox(height: 16),
           Container(
@@ -532,8 +532,8 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.search,
                     onSubmitted: (_) => searchCustomerById(),
-                    decoration: const InputDecoration(
-                      hintText: "Enter customer phone number",
+                    decoration: InputDecoration(
+                      hintText: 'Customer Phone Number'.tr,
                       border: InputBorder.none,
                     ),
                   ),
@@ -570,9 +570,9 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          "Document Storage",
-          style: TextStyle(
+        title: Text(
+          'document_storage'.tr,
+          style: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 18
@@ -586,7 +586,7 @@ class _DocumentStoragePageState extends State<DocumentStoragePage> {
         backgroundColor: primaryColor,
         foregroundColor: Colors.black87,
         icon: const Icon(Icons.upload_file),
-        label: const Text("Upload"),
+        label: Text('upload'.tr),
         onPressed: () async {
           final result = await Navigator.push(
             context,

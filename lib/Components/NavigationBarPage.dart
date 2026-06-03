@@ -79,6 +79,7 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:loan_management_app/Pages/DashboardPage.dart';
 import 'package:loan_management_app/Pages/CustomersPage.dart';
 import 'package:loan_management_app/Pages/DocumentStoragePage.dart';
@@ -130,26 +131,26 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
         showUnselectedLabels: true,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            label: "Dashboard",
+            icon: const Icon(Icons.grid_view_rounded),
+            label: 'dashboard'.tr,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.group),
-            label: "Customers",
+            icon: const Icon(Icons.group),
+            label: 'customers'.tr,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.description),
-            label: "Documents",
+            icon: const Icon(Icons.description),
+            label: 'documents'.tr,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: "Loan History",
+            icon: const Icon(Icons.history),
+            label: 'loan_history'.tr,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calculate),
-            label: "Calculator",
+            icon: const Icon(Icons.calculate),
+            label: 'calculator'.tr,
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:loan_management_app/Service/GoldPriceService.dart';
 import 'package:loan_management_app/Service/api_service.dart';
+import 'package:loan_management_app/Service/locale_service.dart';
 import 'package:loan_management_app/Pages/EMICalculatorPage.dart';
 import 'package:loan_management_app/Pages/AddNewCustomerPage.dart';
 import 'package:loan_management_app/Pages/LoanHistoryPage.dart';
@@ -165,15 +166,15 @@ class _DashboardPageState extends State<DashboardPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to logout?'),
+          title: Text('confirm_logout'.tr),
+          content: Text('logout_confirmation'.tr),
           actions: [
             TextButton(
               onPressed: () {
                 debugPrint('❌ [LOGOUT] Cancelled by user');
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel'),
+              child: Text('cancel'.tr),
             ),
             TextButton(
               onPressed: () async {
@@ -233,7 +234,7 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _branchName ?? "Loan Management",
+                _branchName ?? 'app_title'.tr,
                 style: GoogleFonts.manrope(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -241,7 +242,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               Text(
-                "Branch Dashboard",
+                'branch_dashboard'.tr,
                 style: GoogleFonts.manrope(
                   fontSize: 13,
                   color: Colors.grey.shade600,
@@ -275,12 +276,27 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
           ),
           IconButton(
+            onPressed: () async {
+              final nextLocale = Get.locale?.languageCode == 'mr'
+                  ? TranslationService.englishLocale
+                  : TranslationService.marathiLocale;
+              await TranslationService.changeLocale(nextLocale);
+            },
+            icon: const Icon(
+              Icons.translate,
+              color: Colors.black87,
+            ),
+            tooltip: Get.locale?.languageCode == 'mr'
+                ? 'language_switch_to_english'.tr
+                : 'language_switch_to_marathi'.tr,
+          ),
+          IconButton(
             onPressed: _logout,
             icon: const Icon(
               Icons.logout_rounded,
               color: Colors.black87,
             ),
-            tooltip: 'Logout',
+            tooltip: 'logout'.tr,
           ),
         ],
       ),
@@ -305,7 +321,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       children: [
                         Expanded(
                           child: _buildStatCard(
-                            "Customers",
+                            'customers'.tr,
                             (_dashboardStats?['totalCustomers'] ?? 0).toString(),
                             primaryColor,
                             textDark,
@@ -314,7 +330,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: _buildStatCard(
-                            "Active Loans",
+                            'active_loans'.tr,
                             (_dashboardStats?['activeLoanCount'] ?? 0).toString(),
                             primaryColor,
                             textDark,
@@ -350,7 +366,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                     // Quick Links
                     Text(
-                      "Quick Links",
+                      'quick_links'.tr,
                       style: GoogleFonts.manrope(
                         fontSize: 16,
                         color: textDark,
@@ -367,7 +383,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       children: [
                         _quickLink(
                           Icons.add_card,
-                          "New Loan",
+                          'new_loan'.tr,
                           primaryColor,
                           textDark,
                           onTap: () => Navigator.push(
@@ -379,7 +395,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         _quickLink(
                           Icons.person_add,
-                          "New Customer",
+                          'new_customer'.tr,
                           primaryColor,
                           textDark,
                           onTap: () => Navigator.push(
@@ -391,7 +407,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         _quickLink(
                           Icons.receipt_long,
-                          "Reports",
+                          'reports'.tr,
                           primaryColor,
                           textDark,
                           onTap: () => Navigator.push(
@@ -403,7 +419,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         _quickLink(
                           Icons.sms,
-                          "Customers",
+                          'customers'.tr,
                           primaryColor,
                           textDark,
                           onTap: () => Navigator.push(
@@ -419,7 +435,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                     // Upcoming Payments Section
                     Text(
-                      "Upcoming Payments",
+                      'upcoming_payments'.tr,
                       style: GoogleFonts.manrope(
                         fontSize: 16,
                         color: textDark,
@@ -436,7 +452,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          "Loading upcoming payments or no payments due in the next 3 days.",
+                          'loading_upcoming_payments'.tr,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.manrope(
                             color: Colors.grey.shade600,
@@ -453,7 +469,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     if (_upcomingPayments.isNotEmpty)
                       Center(
                         child: Text(
-                          "Showing payments due in next 3 days",
+                          'showing_payments_due'.tr,
                           style: GoogleFonts.manrope(
                             color: primaryColor,
                             fontWeight: FontWeight.w600,
@@ -512,7 +528,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const Icon(Icons.payments, color: Colors.white, size: 18),
                   const SizedBox(width: 6),
                   Text(
-                    "Live Gold Price (24K)",
+                    'live_gold_price_24k'.tr,
                     style: GoogleFonts.manrope(
                       fontSize: 13,
                       color: Colors.white,
@@ -522,7 +538,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
               Text(
-                "just now",
+                'just_now'.tr,
                 style: GoogleFonts.manrope(
                   fontSize: 11,
                   color: Colors.white70,
@@ -538,7 +554,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Per Gram",
+                    'per_gram'.tr,
                     style: GoogleFonts.manrope(
                       fontSize: 11,
                       color: Colors.white70,
@@ -558,7 +574,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Per KG",
+                    'per_kg'.tr,
                     style: GoogleFonts.manrope(
                       fontSize: 11,
                       color: Colors.white70,

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:loan_management_app/Pages/NewLoanPage.dart';
 import 'package:loan_management_app/Service/GoldPriceService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,7 +53,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "✅ Gold price fetched: ₹${price.toStringAsFixed(2)}/$priceUnit",
+              'gold_price_fetched'.trArgs([price.toStringAsFixed(2), priceUnit == 'per gram' ? 'per_gram'.tr : 'per_kg'.tr]),
             ),
             backgroundColor: Colors.green,
           ),
@@ -64,7 +65,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("⚠️ Failed to fetch gold price: $e"),
+            content: Text('failed_fetch_gold_price'.trArgs([e.toString()])),
             backgroundColor: Colors.red,
           ),
         );
@@ -88,8 +89,8 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
 
       if (requestedLoan <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Requested loan amount must be greater than zero."),
+          SnackBar(
+            content: Text('requested_loan_must_be_greater_than_zero'.tr),
             backgroundColor: Colors.red,
           ),
         );
@@ -100,7 +101,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "Requested loan amount cannot exceed eligible maximum of ₹${eligibleLoan.toStringAsFixed(2)}.",
+              'requested_loan_cannot_exceed_max'.trArgs([eligibleLoan.toStringAsFixed(2)]),
             ),
             backgroundColor: Colors.red,
           ),
@@ -136,9 +137,9 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
         backgroundColor: backgroundLight,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Gold Loan EMI Calculator',
-          style: TextStyle(
+        title: Text(
+          'gold_loan_emi_calculator'.tr,
+          style: const TextStyle(
             color: Colors.black,
             fontFamily: 'Manrope',
             fontWeight: FontWeight.bold,
@@ -156,7 +157,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
         backgroundColor: primary,
         foregroundColor: backgroundDark,
         icon: const Icon(Icons.add),
-        label: const Text("New Loan"),
+        label: Text('new_loan'.tr),
         onPressed: () {
           if (loanAmount > 0) {
             Navigator.push(
@@ -180,8 +181,8 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Please calculate loan before proceeding!"),
+              SnackBar(
+                content: Text('please_calculate_loan_before_proceeding'.tr),
                 backgroundColor: Colors.red,
               ),
             );
@@ -200,10 +201,10 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                 DropdownButtonFormField<String>(
                   value: goldPurity,
                   decoration: buildDropdownDecoration(primary),
-                  items: const [
-                    DropdownMenuItem(value: "22K", child: Text("22K (91.6% Pure)")),
-                    DropdownMenuItem(value: "23K", child: Text("23K (95.8% Pure)")),
-                    DropdownMenuItem(value: "24K", child: Text("24K (99.9% Pure)")),
+                  items: [
+                    DropdownMenuItem(value: "22K", child: Text('gold_purity_22k'.tr)),
+                    DropdownMenuItem(value: "23K", child: Text('gold_purity_23k'.tr)),
+                    DropdownMenuItem(value: "24K", child: Text('gold_purity_24k'.tr)),
                   ],
                   onChanged: (val) => setState(() => goldPurity = val!),
                 ),
@@ -213,30 +214,30 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                 DropdownButtonFormField<String>(
                   value: goldItemType,
                   decoration: buildDropdownDecoration(primary),
-                  items: const [
-                    DropdownMenuItem(value: "Ring", child: Text("Ring")),
-                    DropdownMenuItem(value: "Necklace", child: Text("Necklace")),
-                    DropdownMenuItem(value: "Bracelet", child: Text("Bracelet")),
-                    DropdownMenuItem(value: "Earrings", child: Text("Earrings")),
-                    DropdownMenuItem(value: "Chain", child: Text("Chain")),
-                    DropdownMenuItem(value: "Coin", child: Text("Coin")),
-                    DropdownMenuItem(value: "Bar", child: Text("Bar")),
-                    DropdownMenuItem(value: "Pendant", child: Text("Pendant")),
-                    DropdownMenuItem(value: "Other", child: Text("Other")),
+                  items: [
+                    DropdownMenuItem(value: "Ring", child: Text('ring'.tr)),
+                    DropdownMenuItem(value: "Necklace", child: Text('necklace'.tr)),
+                    DropdownMenuItem(value: "Bracelet", child: Text('bracelet'.tr)),
+                    DropdownMenuItem(value: "Earrings", child: Text('earrings'.tr)),
+                    DropdownMenuItem(value: "Chain", child: Text('chain'.tr)),
+                    DropdownMenuItem(value: "Coin", child: Text('coin'.tr)),
+                    DropdownMenuItem(value: "Bar", child: Text('bar'.tr)),
+                    DropdownMenuItem(value: "Pendant", child: Text('pendant'.tr)),
+                    DropdownMenuItem(value: "Other", child: Text('other'.tr)),
                   ],
                   onChanged: (val) => setState(() => goldItemType = val!),
                 ),
                 const SizedBox(height: 10),
-                buildTextField(weightController, "Gold Weight (grams)", type: TextInputType.number),
+                buildTextField(weightController, 'gold_weight_grams'.tr, type: TextInputType.number),
                 const SizedBox(height: 10),
                 // Price Unit Selection
                 Row(
                   children: [
                     Expanded(
                       child: SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(label: Text("Per Gram"), value: "per gram"),
-                          ButtonSegment(label: Text("Per KG"), value: "per kg"),
+                        segments: [
+                          ButtonSegment(label: Text('per_gram'.tr), value: "per gram"),
+                          ButtonSegment(label: Text('per_kg'.tr), value: "per kg"),
                         ],
                         selected: {priceUnit},
                         onSelectionChanged: (value) {
@@ -255,7 +256,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                     Expanded(
                       child: buildTextField(
                         goldPriceController,
-                        "Gold Price ($priceUnit) (₹)",
+                        'gold_price'.trArgs([priceUnit == 'per gram' ? 'per_gram'.tr : 'per_kg'.tr]),
                         type: TextInputType.number,
                       ),
                     ),
@@ -278,7 +279,7 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text("Get Price"),
+                          : Text('get_price'.tr),
                     ),
                   ],
                 ),
@@ -288,18 +289,18 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
             const SizedBox(height: 16),
 
             buildSectionCard(
-              title: "Loan Details",
+              title: 'loan_details'.tr,
               children: [
-                buildTextField(requestedLoanController, "Requested Loan Amount (₹)",
+                buildTextField(requestedLoanController, 'requested_loan_amount'.tr,
                     type: TextInputType.number),
                 const SizedBox(height: 10),
-                buildTextField(interestController, "Interest Rate (% per annum)",
+                buildTextField(interestController, 'interest_rate_per_annum'.tr,
                     type: TextInputType.number),
                 const SizedBox(height: 10),
-                buildTextField(tenureController, "Tenure (months)",
+                buildTextField(tenureController, 'tenure_months'.tr,
                     type: TextInputType.number),
                 const SizedBox(height: 10),
-                buildTextField(ltvController, "LTV Ratio (%) (default 75%)",
+                buildTextField(ltvController, 'ltv_ratio_default_75'.tr,
                     type: TextInputType.number),
               ],
             ),
@@ -315,9 +316,9 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text(
-                'Calculate Loan & EMI',
-                style: TextStyle(
+              child: Text(
+                'calculate_loan_emi'.tr,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
@@ -328,15 +329,15 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
             const SizedBox(height: 28),
             if (loanAmount > 0)
               buildSectionCard(
-                title: "Loan Summary",
+                title: 'loan_summary'.tr,
                 children: [
-                  buildResultRow("Gold Item Type", goldItemType),
-                  buildResultRow("Gold Purity", goldPurity),
-                  buildResultRow("Max Eligible Loan", "₹ ${maxLoanAmount.toStringAsFixed(2)}"),
-                  buildResultRow("Requested Loan Amount", "₹ ${loanAmount.toStringAsFixed(2)}"),
-                  buildResultRow("Monthly EMI", "₹ ${monthlyEmi.toStringAsFixed(2)}"),
-                  buildResultRow("Total Interest", "₹ ${totalInterest.toStringAsFixed(2)}"),
-                  buildResultRow("Total Payable", "₹ ${totalAmount.toStringAsFixed(2)}"),
+                  buildResultRow('gold_item_type'.tr, translateGoldItemType(goldItemType)),
+                  buildResultRow('gold_purity'.tr, translateGoldPurity(goldPurity)),
+                  buildResultRow('max_eligible_loan'.tr, "₹ ${maxLoanAmount.toStringAsFixed(2)}"),
+                  buildResultRow('requested_loan_amount'.tr, "₹ ${loanAmount.toStringAsFixed(2)}"),
+                  buildResultRow('monthly_emi'.tr, "₹ ${monthlyEmi.toStringAsFixed(2)}"),
+                  buildResultRow('total_interest'.tr, "₹ ${totalInterest.toStringAsFixed(2)}"),
+                  buildResultRow('total_payable'.tr, "₹ ${totalAmount.toStringAsFixed(2)}"),
                 ],
               ),
           ],
@@ -346,22 +347,35 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
   }
 
   // --- Reusable UI Helpers ---
-  Widget buildTextField(TextEditingController controller, String hint,
-      {TextInputType type = TextInputType.text}) {
+  Widget buildTextField(TextEditingController controller, String label,
+      {String? hint, TextInputType type = TextInputType.text}) {
     const Color primary = Color(0xFFECB613);
     return TextField(
       controller: controller,
       keyboardType: type,
       decoration: InputDecoration(
-        hintText: hint,
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.black87),
+        hintText: hint ?? label,
+        hintStyle: TextStyle(color: Colors.black.withOpacity(0.6)),
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
         filled: true,
         fillColor: primary.withOpacity(0.2),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
+      style: const TextStyle(color: Colors.black87),
     );
   }
 
@@ -394,6 +408,44 @@ class _EmiCalculatorPageState extends State<EmiCalculatorPage> {
         ],
       ),
     );
+  }
+
+  String translateGoldPurity(String purity) {
+    switch (purity) {
+      case '22K':
+        return 'gold_purity_22k'.tr;
+      case '23K':
+        return 'gold_purity_23k'.tr;
+      case '24K':
+        return 'gold_purity_24k'.tr;
+      default:
+        return purity;
+    }
+  }
+
+  String translateGoldItemType(String itemType) {
+    switch (itemType) {
+      case 'Ring':
+        return 'ring'.tr;
+      case 'Necklace':
+        return 'necklace'.tr;
+      case 'Bracelet':
+        return 'bracelet'.tr;
+      case 'Earrings':
+        return 'earrings'.tr;
+      case 'Chain':
+        return 'chain'.tr;
+      case 'Coin':
+        return 'coin'.tr;
+      case 'Bar':
+        return 'bar'.tr;
+      case 'Pendant':
+        return 'pendant'.tr;
+      case 'Other':
+        return 'other'.tr;
+      default:
+        return itemType;
+    }
   }
 
   Widget buildSectionCard({required String title, required List<Widget> children}) {

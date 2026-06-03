@@ -65,9 +65,9 @@ class _CustomersPageState extends State<CustomersPage> {
       backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: bg,
-        title: const Text(
-          "Customers",
-          style: TextStyle(
+        title: Text(
+          'customers'.tr,
+          style: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -81,7 +81,7 @@ class _CustomersPageState extends State<CustomersPage> {
         backgroundColor: gold,
         foregroundColor: Colors.black,
         icon: const Icon(Icons.person_add_alt_1_rounded),
-        label: const Text("Add Customer"),
+        label: Text('add_customer'.tr),
         onPressed: () {
           Navigator.push(
             context,
@@ -100,7 +100,7 @@ class _CustomersPageState extends State<CustomersPage> {
             TextField(
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search, color: gold),
-                hintText: "Search customers",
+                hintText: 'search_customers'.tr,
                 hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                 enabledBorder: OutlineInputBorder(
                   borderSide: const BorderSide(color: gold, width: 0.5),
@@ -116,11 +116,11 @@ class _CustomersPageState extends State<CustomersPage> {
             const SizedBox(height: 20),
 
             // Title
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Recent Customers",
-                style: TextStyle(
+                'recent_customers'.tr,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -141,11 +141,11 @@ class _CustomersPageState extends State<CustomersPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("Failed to fetch customers."),
+                      Text('failed_to_fetch_customers'.tr),
                       const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: fetchCustomers,
-                        child: const Text("Retry"),
+                        child: Text('retry'.tr),
                       ),
                     ],
                   ),
@@ -156,10 +156,10 @@ class _CustomersPageState extends State<CustomersPage> {
             if (!isLoading && !isError)
               Expanded(
                 child: customers.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
-                          "No customers found.",
-                          style: TextStyle(color: Colors.grey),
+                          'no_customers_found'.tr,
+                          style: const TextStyle(color: Colors.grey),
                         ),
                       )
                     : ListView.builder(
@@ -211,7 +211,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                           ),
                                         ),
                                         Text(
-                                          "ID: ${c['customerId']}",
+                                          '${'id_label'.tr}: ${c['customerId']}',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey,
