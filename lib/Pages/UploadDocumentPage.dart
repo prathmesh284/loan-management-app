@@ -147,71 +147,58 @@ class _UploadDocumentsPageState extends State<UploadDocumentsPage> {
     setState(() => isLoading = true);
 
     try {
-      if (kIsWeb) {
-        final token = await _getToken();
-        final uri = Uri.parse(
-          "${apiService.baseUrl}/api/documents/upload-base64",
-        );
-        debugPrint('📤 [WEB-UPLOAD] Sending request to: $uri');
-        debugPrint(
-          '📝 [WEB-UPLOAD] Fields: customerId=${customerIdController.text.trim()}, docType=$docType, docName=${fileName ?? 'document'}',
-        );
+      final token = await _getToken();
+      final uri = Uri.parse(
+        "${apiService.baseUrl}/api/documents/upload-base64",
+      );
 
-        if (token == null || token.isEmpty) {
-          setState(() => isLoading = false);
-          Get.snackbar(
-            "Error",
-            "Authentication token missing. Please login again.",
-          );
-          return;
-        }
-
-        final response = await http.post(
-          uri,
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-          },
-          body: jsonEncode({
-            'customerId': customerIdController.text.trim(),
-            'customerName': customerNameController.text.trim(),
-            'docType': docType,
-            'docName': fileName ?? 'document',
-            'fileName': fileName ?? 'document',
-            'contentType': _mimeTypeForFileName(fileName),
-            'base64File': base64Encode(fileBytes!),
-          }),
-        );
-
-        debugPrint('📥 [WEB-UPLOAD] Response status: ${response.statusCode}');
-        final responseBody = response.body;
-        debugPrint('📦 [WEB-UPLOAD] Response body: $responseBody');
-
+      if (token == null || token.isEmpty) {
         setState(() => isLoading = false);
+        Get.snackbar(
+          "Error",
+          "Authentication token missing. Please login again.",
+        );
+        return;
+      }
 
-        if (response.statusCode == 201) {
-          Get.snackbar("Success", "Document uploaded");
-          Navigator.pop(context, true);
-        } else {
-          Get.snackbar("Error", "Upload failed: $responseBody");
-        }
+      if (!kIsWeb && fileBytes == null && file != null) {
+        fileBytes = await file!.readAsBytes();
+      }
+
+      debugPrint('📤 [UPLOAD] Sending base64 upload request to: $uri');
+      debugPrint(
+        '📝 [UPLOAD] Fields: customerId=${customerIdController.text.trim()}, docType=$docType, docName=${fileName ?? 'document'}, size=${fileBytes?.length ?? 0} bytes',
+      );
+
+      final response = await http.post(
+        uri,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          'customerId': customerIdController.text.trim(),
+          'customerName': customerNameController.text.trim(),
+          'docType': docType,
+          'docName': fileName ?? 'document',
+          'fileName': fileName ?? 'document',
+          'contentType': _mimeTypeForFileName(fileName),
+          'base64File': base64Encode(fileBytes!),
+        }),
+      );
+
+      debugPrint('📥 [UPLOAD] Response status: ${response.statusCode}');
+      final responseBody = response.body;
+      debugPrint('📦 [UPLOAD] Response body: $responseBody');
+
+      setState(() => isLoading = false);
+
+      if (response.statusCode == 201) {
+        Get.snackbar("Success", "Document uploaded");
+        Navigator.pop(context, true);
       } else {
-        final response = await apiService
-            .uploadFileWithFields('/api/documents/upload', file!.path, 'file', {
-              'customerId': customerIdController.text.trim(),
-              'customerName': customerNameController.text.trim(),
-              'docType': docType,
-              'docName': fileName ?? 'document',
-            });
-
-        setState(() => isLoading = false);
-        if (response.statusCode == 201) {
-          Get.snackbar("Success", "Document uploaded");
-          Navigator.pop(context, true);
-        } else {
-          Get.snackbar("Error", "Upload failed: ${response.body}");
-        }
+        Get.snackbar("Error", "Upload failed: $responseBody");
       }
     } catch (e, stackTrace) {
       setState(() => isLoading = false);

@@ -11,13 +11,31 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Get.putAsync(() async => ApiService());
   
-  // Check if user is authenticated
   final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString("jwt_token");
-  final branchId = prefs.getInt("branch_id") ?? 1;
-  
+  String? token = prefs.getString("jwt_token");
+  int branchId = prefs.getInt("branch_id") ?? 1;
+  bool isLoggedIn = token != null && token.isNotEmpty;
+
+  if (isLoggedIn) {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.getRequest('/api/branches/details?branchId=$branchId');
+      if (response.statusCode == 404 || response.statusCode == 401) {
+        debugPrint('⚠️ [STARTUP] Stored branchId $branchId is invalid or auth token expired; clearing stored login state');
+        await prefs.remove("jwt_token");
+        await prefs.remove("token_expiry_time");
+        await prefs.remove("branch_id");
+        token = null;
+        branchId = 1;
+        isLoggedIn = false;
+      }
+    } catch (e) {
+      debugPrint('❌ [STARTUP] Failed to validate stored branchId: $e');
+    }
+  }
+
   runApp(GoldLoanApp(
-    isLoggedIn: token != null && token.isNotEmpty,
+    isLoggedIn: isLoggedIn,
     branchId: branchId,
   ));
 }

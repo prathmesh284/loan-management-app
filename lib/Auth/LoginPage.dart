@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF2B90D).withOpacity(0.15),
+                  color: const Color.fromRGBO(242, 185, 13, 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -374,32 +373,47 @@ class _LoginPageState extends State<LoginPage> {
           debugPrint('📦 [LOGIN] Decoded response body');
           final token = data['token'] ?? data['data']?['token'] ?? '';
           final expiresIn = data['expiresIn'] ?? data['data']?['expiresIn'] ?? 3600;
-          branchId = data['branchId'] ?? data['data']?['branchId'] ?? 1;
 
+          dynamic rawBranchId = data['branchId'] ?? data['branch_id'] ?? data['data']?['branchId'] ?? data['data']?['branch_id'];
+          int? parsedBranchId;
+          if (rawBranchId is int) {
+            parsedBranchId = rawBranchId;
+          } else if (rawBranchId is String) {
+            parsedBranchId = int.tryParse(rawBranchId);
+          } else if (rawBranchId is num) {
+            parsedBranchId = rawBranchId.toInt();
+          }
+
+          if (token.isEmpty) {
+            debugPrint('❌ [LOGIN] Token is empty in response');
+            setState(() => _errorMessage = 'Invalid login response: missing token.');
+            return;
+          }
+
+          if (parsedBranchId == null || parsedBranchId <= 0) {
+            debugPrint('❌ [LOGIN] Invalid or missing branchId in login response: $rawBranchId');
+            setState(() => _errorMessage = 'Invalid login response: missing branch information.');
+            return;
+          }
+
+          branchId = parsedBranchId;
           debugPrint('🔑 [LOGIN] Token length: ${token.length} | Expires in: $expiresIn | Branch ID: $branchId');
 
-          if (token.isNotEmpty) {
-            debugPrint('💾 [LOGIN] Storing token and branch data');
-            // Store token with expiry information
-            await apiService.storeTokenData(token, expirySeconds: expiresIn);
-            
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setInt('branch_id', branchId!);
-            debugPrint('✅ [LOGIN] Token and branch data stored successfully');
+          debugPrint('💾 [LOGIN] Storing token and branch data');
+          await apiService.storeTokenData(token, expirySeconds: expiresIn);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('branch_id', branchId!);
+          debugPrint('✅ [LOGIN] Token and branch data stored successfully');
 
-            if (mounted) {
-              debugPrint('🎯 [LOGIN] Navigating to dashboard');
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('✅ Login successful!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              Get.offAllNamed('/dashboard', arguments: {'branchId': branchId});
-            }
-          } else {
-            debugPrint('❌ [LOGIN] Token is empty in response');
-            setState(() => _errorMessage = 'Invalid response format.');
+          if (mounted) {
+            debugPrint('🎯 [LOGIN] Navigating to dashboard');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Login successful!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Get.offAllNamed('/dashboard', arguments: {'branchId': branchId});
           }
         } catch (parseError) {
           debugPrint('❌ [LOGIN] JSON parsing error: $parseError');
